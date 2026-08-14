@@ -85,6 +85,7 @@ button:disabled{opacity:.38;cursor:not-allowed}
 button.primary{background:#31415f;border-color:#5b7bb6}
 button.danger{background:#4d1d1d;border-color:#8a3030}
 button.ghost{background:transparent}
+.buttonLike{display:inline-block;background:#242438;color:var(--text);border:1px solid #4a4a6d;border-radius:10px;padding:10px 12px;cursor:pointer;font-size:14px}
 input,select{
   width:100%;
   padding:11px;
@@ -809,6 +810,13 @@ const AREA_BOSSES = {
 };
 const SWORD_RANKS = ['見習い','剣士','剣客','剣豪','師範','宗師','剣極'];
 const MASTERY_THRESHOLDS = [0,10,30,75,150];
+const ENHANCE_RATE = .06;
+const TOWER_MODIFIERS = [
+  {name:'剛刃',desc:'敵攻撃+20%',atk:1.2,def:1,hp:1},
+  {name:'金剛',desc:'敵防御+25%',atk:1,def:1.25,hp:1},
+  {name:'不死',desc:'敵HP+35%',atk:1,def:1,hp:1.35},
+  {name:'神速',desc:'敵速度+30%',atk:1,def:1,hp:1,spd:1.3}
+];
 const SEASON_ID = 'S1-剣ノ黎明';
 const SYNERGIES = [
   {id:'draw',name:'抜刀連鎖',tag:'抜刀',need:3,desc:'抜刀系3技。会心+8%、スキル威力+5%。',bonus:{crit:8,skillPct:5}},
@@ -858,7 +866,7 @@ const SERVER_DESIGN = [
 
 function defaultState(){
   return {
-    version:4,
+    version:5,
     screen:'title',
     name:'',
     gender:'その他',
@@ -871,6 +879,7 @@ function defaultState(){
     clearedAreas:[],
     areaWins:{},
     skillMastery:{},
+    tower:{floor:1,best:0,wins:0},
     stats:{str:5,tec:5,agi:5,vit:5,men:5,def:5,luk:5,ki:5,foc:5,pre:5},
     classId:'kenshi',
     classPath:null,
@@ -1109,12 +1118,22 @@ function masteryNextText(id){
   return `次まで${fmt(MASTERY_THRESHOLDS[m.level]-m.uses)}回`;
 }
 function recordSkillUse(id){
-  const before=skillMastery(id).level;
-  const raw=S.skillMastery[id] || {uses:0,level:1};
-  raw.uses=(raw.uses||0)+1;
-  S.skillMastery[id]=raw;
-  const after=skillMastery(id).level;
-  if(after>before) blog(`${SKILLS[id].name}の熟練度が${after}へ上昇！ 威力と気力効率が高まった。`,'result');
+  if(!S.battle) return;
+  S.battle.skillUses=S.battle.skillUses||{};
+  S.battle.skillUses[id]=(S.battle.skillUses[id]||0)+1;
+}
+function awardBattleMastery(){
+  const b=S.battle;
+  if(!b || b.isPvp || b.enemy.level < Math.max(1,Math.floor(S.level*.7))) return;
+  for(const id of Object.keys(b.skillUses||{})){
+    const before=skillMastery(id).level;
+    const raw=S.skillMastery[id]||{uses:0,level:1};
+    raw.uses=(raw.uses||0)+1;
+    S.skillMastery[id]=raw;
+    const after=skillMastery(id).level;
+    blog(`${SKILLS[id].name}の有効修練+1（戦闘内で何度使っても1回）。`,'stat');
+    if(after>before) blog(`${SKILLS[id].name}の熟練度が${after}へ上昇！`,'result');
+  }
 }
 function skillKiCost(sk){
   const base=sk.ki||0, lv=skillMastery(sk.id).level;
@@ -1202,6 +1221,7 @@ function load(){
     if(!Array.isArray(S.clearedAreas)) S.clearedAreas=[];
     S.areaWins=Object.assign({},d.areaWins||{});
     S.skillMastery=Object.assign({},d.skillMastery||{});
+    S.tower=Object.assign({},def.tower,d.tower||{});
     if(!Array.isArray(S.social.disciples)) S.social.disciples=[];
     if(!Array.isArray(S.ui.inheritActive)) S.ui.inheritActive = [];
     if(!Array.isArray(S.ui.inheritPassive)) S.ui.inheritPassive = [];
@@ -1336,7 +1356,7 @@ function getPassiveBonuses(){
 }
 function itemValue(item,key){
   const base=item && item[key] ? item[key] : 0;
-  return Math.floor(base*(1+(item.enhance||0)*.12));
+  return Math.floor(base*(1+(item.enhance||0)*ENHANCE_RATE));
 }
 function getEquipBonuses(){
   const b = {
@@ -1378,7 +1398,8 @@ function getDerived(){
 }
 function getCombatPower(){
   const d=getDerived();
-  const mastery=Object.keys(S.skillMastery).reduce((a,id)=>a+skillMastery(id).level,0);
+  const equipped=[...usableSkillIds('active'),...usableSkillIds('passive')];
+  const mastery=[...new Set(equipped)].reduce((a,id)=>a+skillMastery(id).level,0);
   return Math.floor(d.maxHP*.35+d.attack*9+d.defense*7+d.speed*5+d.crit*30+d.dodge*25+d.maxKI*2+mastery*12+S.level*80);
 }
 function buildDefenseSnapshot(){
@@ -1448,6 +1469,15 @@ function generateItem(level, rarity=null, boss=false){
   }
   return item;
 }
+function generateBossRelic(areaId,level){
+  const names={grass:'赤城の破門刀',forest:'霧隠れの忍刀',grave:'宗厳の葬剣',mine:'巌鉄の砕城剣',tower:'白蓮の天剣',memory:'己を超える無銘刀'};
+  const item=generateItem(level,'legendary',true);
+  item.name=names[areaId]||'主殺しの剣印';
+  item.bossRelic=areaId;
+  item.skillPct=(item.skillPct||0)+8;
+  item.sell=Math.floor(item.sell*2);
+  return item;
+}
 function itemStatsText(item){
   const arr = [];
   if(item.atk) arr.push(`攻撃+${fmt(itemValue(item,'atk'))}`);
@@ -1461,6 +1491,16 @@ function itemStatsText(item){
   if(item.skillPct) arr.push(`スキル+${fmt(itemValue(item,'skillPct'))}%`);
   if(item.pvp) arr.push(`PVP+${fmt(itemValue(item,'pvp'))}%`);
   return arr.join(' / ') || '効果なし';
+}
+function itemComparisonText(item,current){
+  if(!current) return '未装備';
+  const labels={atk:'攻',def:'防',hp:'HP',spd:'速',crit:'会心',dodge:'回避',ki:'気力',lifesteal:'吸血',skillPct:'技威力',pvp:'PVP'};
+  const parts=[];
+  for(const key of Object.keys(labels)){
+    const diff=itemValue(item,key)-itemValue(current,key);
+    if(diff) parts.push(`${labels[key]}${diff>0?'+':''}${fmt(diff)}`);
+  }
+  return parts.join(' / ')||'能力差なし';
 }
 function enhanceCost(item){ return Math.floor(120*Math.pow((item.enhance||0)+1,2)*Math.max(1,item.level/5)); }
 
@@ -1500,6 +1540,17 @@ function makeAreaBoss(areaId){
     exp:Math.floor((100+lvl*80)*power),gold:spec.rewardGold,isPvp:false,boss:true,fixedBoss:true,
     areaId:area.id,dropRate:1,rating:0,opponentId:null,skills:makeEnemySkills(spec.name,true)
   };
+}
+function makeTowerEnemy(){
+  const floor=Math.max(1,S.tower.floor||1);
+  const mod=TOWER_MODIFIERS[(floor-1)%TOWER_MODIFIERS.length];
+  const cycle=Math.floor((floor-1)/TOWER_MODIFIERS.length);
+  const level=Math.max(S.level,20+floor*2);
+  const scale=1+floor*.075+cycle*.04;
+  const boss=floor%5===0;
+  const name=boss?`【第${floor}階の剣主】無窮剣影`:`第${floor}階・${mod.name}の剣士`;
+  const maxHP=Math.floor((90+level*22)*scale*mod.hp*(boss?1.7:1));
+  return {name,level,maxHP,hp:maxHP,atk:Math.floor((10+level*4)*scale*mod.atk*(boss?1.18:1)),def:Math.floor((6+level*2.6)*scale*mod.def),speed:Math.floor((9+level*2)*scale*(mod.spd||1)),exp:Math.floor((45+level*45)*scale),gold:Math.floor((60+level*38)*scale),isPvp:false,boss,fixedBoss:false,tower:true,towerFloor:floor,modifier:mod.name,areaId:null,dropRate:Math.min(.8,.35+floor*.01),rating:0,opponentId:null,skills:makeEnemySkills(name,boss)};
 }
 function makePvpEnemy(op){
   const lvl = Math.max(1, op.level || Math.floor(S.level * (0.9 + Math.random()*0.25)));
@@ -1556,6 +1607,7 @@ function initBattle(enemy, isPvp, opponentId){
     result:'',
     isPvp,
     opponentId,
+    skillUses:{},
     turn:1
   };
 
@@ -2073,6 +2125,7 @@ function victory(){
   S.exp += expGain;
   S.gold += goldGain;
   blog(`経験値+${fmt(expGain)} / ゴールド+${fmt(goldGain)}`);
+  awardBattleMastery();
 
   const rankBefore=swordRankIndex();
   if(!b.isPvp && b.enemy.areaId && !b.enemy.fixedBoss){
@@ -2083,6 +2136,22 @@ function victory(){
     const spec=AREA_BOSSES[b.enemy.areaId];
     S.sp+=spec.rewardSp;
     blog(`${spec.title}を制覇！ 初回報酬SP+${spec.rewardSp}。次の修練地が解放された。`,'result');
+  }
+  if(b.enemy.fixedBoss){
+    const firstClear=!b.enemy.replay;
+    if((firstClear||chance(20)) && S.inventory.length<60){
+      const relic=generateBossRelic(b.enemy.areaId,b.enemy.level);
+      S.inventory.push(relic);
+      blog(`${firstClear?'初回制覇':'再戦'}報酬――固有装備「${relic.name}」を獲得！`,'result');
+    }else if(!firstClear){
+      blog('固有装備の剣気は現れなかった。再戦時の固有装備率は20%。','system');
+    }
+  }
+  if(b.enemy.tower){
+    S.tower.best=Math.max(S.tower.best||0,b.enemy.towerFloor);
+    S.tower.wins=(S.tower.wins||0)+1;
+    S.tower.floor=b.enemy.towerFloor+1;
+    blog(`無限剣塔 第${b.enemy.towerFloor}階を踏破。第${S.tower.floor}階が解放された！`,'result');
   }
   const rankAfter=swordRankIndex();
   if(rankAfter>rankBefore) blog(`段位昇格――「${SWORD_RANKS[rankAfter]}」に認められた！`,'result');
@@ -2350,6 +2419,7 @@ const G = {
     const idx = S.inventory.findIndex(i => i.id === id);
     if(idx < 0) return;
     const item = S.inventory[idx];
+    if(item.locked){ S.message='保護中の装備は売却できません。'; render(); return; }
     S.gold += item.sell;
     S.inventory.splice(idx, 1);
     S.message = `${item.name}を${fmt(item.sell)}Gで売った。`;
@@ -2362,7 +2432,14 @@ const G = {
     const cost=enhanceCost(item);
     if(S.gold<cost){ S.message=`強化に${fmt(cost)}G必要です。`; render(); return; }
     S.gold-=cost; item.enhance=(item.enhance||0)+1;
-    S.message=`${item.name}を+${item.enhance}へ強化した！ 全能力+${item.enhance*12}%相当。`;
+    S.message=`${item.name}を+${item.enhance}へ強化した！ 装備能力+${item.enhance*6}%。`;
+    save(); render();
+  },
+  toggleItemLock(id){
+    const item=S.inventory.find(i=>i.id===id);
+    if(!item) return;
+    item.locked=!item.locked;
+    S.message=item.locked?`${item.name}を保護した。`:`${item.name}の保護を解除した。`;
     save(); render();
   },
   startBattle(areaId){
@@ -2373,10 +2450,21 @@ const G = {
     render();
   },
   startBoss(areaId){
-    if(!bossUnlocked(areaId) || S.clearedAreas.includes(areaId)) return;
-    initBattle(makeAreaBoss(areaId),false,null);
+    if(!bossUnlocked(areaId)) return;
+    const enemy=makeAreaBoss(areaId);
+    enemy.replay=S.clearedAreas.includes(areaId);
+    initBattle(enemy,false,null);
     S.screen='battle';
     render();
+  },
+  startTower(){
+    if(S.clearedAreas.length<6) return;
+    initBattle(makeTowerEnemy(),false,null);
+    S.screen='battle'; render();
+  },
+  resetTower(){
+    if(!confirm('第1階から再挑戦しますか？ 最高到達記録は残ります。')) return;
+    S.tower.floor=1; save(); render();
   },
   startPvp(id){
     if(!S.rankingData) return;
@@ -2433,6 +2521,28 @@ const G = {
       render();
     });
   },
+  exportSave(){
+    const data=Object.assign({},S); delete data.battle; data.rankingLoading=false;
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=`ken-tatsujin-save-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+    S.message='セーブデータを書き出しました。'; render();
+  },
+  importSave(input){
+    const file=input&&input.files&&input.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{
+        const data=JSON.parse(String(reader.result));
+        if(!data || typeof data!=='object' || !data.stats || !Array.isArray(data.learned)) throw new Error('invalid');
+        localStorage.setItem(SAVE_KEY,JSON.stringify(data));
+        if(!load()) throw new Error('load');
+        S.message='セーブデータを読み込みました。'; save(); render();
+      }catch(e){ alert('読み込みに失敗しました。このゲームから書き出したJSONを選んでください。'); }
+    };
+    reader.readAsText(file);
+  },
   resetGame(){
     if(confirm('セーブデータを削除して初期化しますか？')){
       localStorage.removeItem(SAVE_KEY);
@@ -2448,7 +2558,7 @@ function titleView(){
   return `
   <div class="panel center">
     <h1 class="title">剣の達人への道 無限修練版</h1>
-    <p class="subtitle">段位／予兆と見切り／固定ボス／熟練度／100スキル／装備強化／師弟／非同期PVP準備</p>
+    <p class="subtitle">段位／予兆と見切り／固定ボス／無限剣塔／熟練度／100スキル／装備強化／師弟</p>
     <div class="flex" style="justify-content:center;margin-top:14px">
       <button class="primary" onclick="G.toCreate()">新しく始める</button>
       ${S.name ? `<button onclick="G.nav('adventure')">続きから（${esc(S.name)}）</button>` : ''}
@@ -2526,7 +2636,7 @@ function adventureView(){
   return `
   <div class="panel">
     <h2>冒険</h2>
-    <div class="card"><b>段位：${swordRankName()}</b>　<span class="pill">総合戦闘力 ${fmt(getCombatPower())}</span><div class="small">第一目標：六つの主を制し「剣極」へ。到達後も無限成長し、総合戦闘力とシーズンPVPの両ランキング頂点を目指す。</div></div>
+    <div class="card"><b>段位：${swordRankName()}</b>　<span class="pill">総合戦闘力 ${fmt(getCombatPower())}</span><div class="small">第一目標：六つの主を制し「剣極」へ。到達後は無限剣塔の最高階層と総合戦闘力を伸ばす。</div></div>
     <div class="bar exp"><div style="width:${expPercent()}%"></div></div>
     <div class="small">EXP ${fmt(S.exp)} / ${fmt(expNeeded(S.level))} / 残りポイント ${fmt(S.statPoints)} / SP ${fmt(S.sp)}</div>
     ${S.message ? `<p class="good">${esc(S.message)}</p>` : ''}
@@ -2541,9 +2651,14 @@ function adventureView(){
           <div class="small">出現：${a.enemies.slice(0,3).join('、')} ほか</div>
           <div class="small">主への挑戦条件：通常戦3勝（${Math.min(3,wins)}/3）</div>
           <div class="flex"><button onclick="G.startBattle('${a.id}')" ${unlocked?'':'disabled'}>修練へ出撃</button>
-          <button class="primary" onclick="G.startBoss('${a.id}')" ${bossUnlocked(a.id)&&!cleared?'':'disabled'}>${cleared?'主を撃破済み':'主に挑む'}</button></div>
+          <button class="primary" onclick="G.startBoss('${a.id}')" ${bossUnlocked(a.id)?'':'disabled'}>${cleared?'主と再戦':'主に挑む'}</button></div>
         </div>`;
       }).join('')}
+    </div>
+    <div class="card" style="margin-top:12px;${S.clearedAreas.length<6?'opacity:.5':''}">
+      <div class="flex"><b>無限剣塔</b><span class="pill warn">現在 第${fmt(S.tower.floor)}階</span><span class="pill">最高 ${fmt(S.tower.best)}階</span></div>
+      <div class="small">剣極到達後の無限修練。階層ごとに敵能力と特殊補正が上昇し、5階ごとに剣主が待つ。</div>
+      <div class="flex"><button class="primary" onclick="G.startTower()" ${S.clearedAreas.length>=6?'':'disabled'}>第${fmt(S.tower.floor)}階へ挑戦</button><button onclick="G.resetTower()" ${S.clearedAreas.length>=6?'':'disabled'}>第1階から</button></div>
     </div>
   </div>`;
 }
@@ -2707,7 +2822,7 @@ function equipView(){
           ${item ? `
             <div class="itemName ${RARITIES[item.rarity].cls}">${item.name} +${item.enhance||0}</div>
             <div class="small">${itemStatsText(item)}</div>
-            <div class="small">強化成功率100%／次の費用 ${fmt(enhanceCost(item))}G／上限+20</div>
+            <div class="small">強化成功率100%／装備能力+${(item.enhance||0)*6}%／次の費用 ${fmt(enhanceCost(item))}G／上限+20</div>
             <div class="flex"><button class="primary" onclick="G.enhanceItem('${slot}')" ${(item.enhance||0)>=20?'disabled':''}>ゴールド強化</button><button onclick="G.unequipItem('${slot}')">外す</button></div>
           ` : '<div class="small">未装備</div>'}
         </div>`;
@@ -2722,9 +2837,11 @@ function equipView(){
             <div class="itemName ${RARITIES[item.rarity].cls}">${item.name} +${item.enhance||0}</div>
             <div class="small">${RARITIES[item.rarity].name} / Lv${fmt(item.level)} / ${item.slot === 'weapon' ? '武器' : item.slot === 'armor' ? '防具' : '装飾'}</div>
             <div class="small">${itemStatsText(item)}</div>
+            ${S.equip[item.slot]?`<div class="small muted">装備中との比較：${itemComparisonText(item,S.equip[item.slot])}</div>`:'<div class="small good">現在この部位は未装備</div>'}
             <div class="flex" style="margin-top:6px">
               <button onclick="G.equipItem('${item.id}')">装備</button>
-              <button onclick="G.sellItem('${item.id}')">売却 ${fmt(item.sell)}G</button>
+              <button onclick="G.toggleItemLock('${item.id}')">${item.locked?'保護解除':'保護'}</button>
+              <button onclick="G.sellItem('${item.id}')" ${item.locked?'disabled':''}>売却 ${fmt(item.sell)}G</button>
             </div>
           </div>
         `).join('')}
@@ -2856,6 +2973,12 @@ function settingsView(){
     <div class="card">
       <b>PVPサーバー設計メモ</b>
       ${SERVER_DESIGN.map(x => `<div class="small">${x}</div>`).join('')}
+    </div>
+
+    <div class="card">
+      <b>セーブデータ管理</b>
+      <div class="small">機種変更やブラウザデータ消去に備え、JSONファイルを保管してください。読み込み時は現在のデータを置き換えます。</div>
+      <div class="flex"><button class="primary" onclick="G.exportSave()">セーブを書き出す</button><label class="buttonLike">セーブを読み込む<input type="file" accept="application/json,.json" style="display:none" onchange="G.importSave(this)"></label></div>
     </div>
 
     <div class="flex">
