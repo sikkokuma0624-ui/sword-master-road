@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>剣の達人への道 最終職分岐版</title>
+<title>剣の達人への道 剣戟演出版</title>
 <style>
 :root{
   --bg:#0b0b10;
@@ -147,7 +147,7 @@ input,select{
 .bar.exp div{background:linear-gradient(90deg,#ffd54f,#fff176)}
 .bar.enemy div{background:linear-gradient(90deg,#b71c1c,#ef5350)}
 .log{
-  height:250px;
+  height:360px;
   overflow-y:auto;
   background:#0a0a0e;
   border:1px solid #303043;
@@ -157,9 +157,21 @@ input,select{
   margin:10px 0;
 }
 .log div{
-  padding:4px 2px;
+  padding:6px 4px;
   border-bottom:1px dashed #20202d;
 }
+.log-system{color:#b9b9ce}
+.log-stance{color:#90caf9;font-style:italic}
+.log-tech{color:#e1bee7}
+.log-skill{color:#ffd54f;font-weight:700;text-shadow:0 0 10px rgba(255,213,79,.22)}
+.log-impact{color:#ffab91;font-weight:700}
+.log-crit{color:#fff176;font-weight:800}
+.log-enemy{color:#ef9a9a}
+.log-enemySkill{color:#ff7043;font-weight:700;text-shadow:0 0 10px rgba(255,82,82,.2)}
+.log-defense{color:#9fa8da}
+.log-stat{color:#80cbc4}
+.log-result{color:#b9f6ca;font-weight:800}
+.skillFlavor{margin-top:7px;padding:8px 10px;border-left:3px solid #8f78d8;background:#141420;color:#d8d1f4;font-size:13px}
 .battleRow{
   display:grid;
   grid-template-columns:1fr 80px 1fr;
@@ -788,7 +800,7 @@ const SERVER_DESIGN = [
 
 function defaultState(){
   return {
-    version:2,
+    version:3,
     screen:'title',
     name:'',
     gender:'その他',
@@ -830,6 +842,150 @@ function chance(p){ return Math.random() * 100 < p; }
 function rand(n){ return Math.floor(Math.random() * (n + 1)); }
 function choice(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
 function uid(){ return 'id' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function weightedSwordStat(){
+  const pool = [];
+  for(const key of STAT_KEYS){
+    const weight = Math.max(1, Math.floor((S.stats[key] || 1) / 5));
+    for(let i=0;i<weight;i++) pool.push(key);
+  }
+  return choice(pool);
+}
+function swordProfileLines(d){
+  const values = STAT_KEYS.map(k => [k,S.stats[k] || 0]).sort((a,b) => b[1]-a[1]);
+  const top = values[0][0];
+  const lines = {
+    str:`鍛え抜いた力${fmt(S.stats.str)}が柄から切先まで通り、重い剣圧が地を震わせる。`,
+    tec:`技${fmt(S.stats.tec)}の精密な刃筋。相手の構えの綻びを既に捉えている。`,
+    agi:`素早さ${fmt(S.stats.agi)}。足音より先に残像が間合いへ滑り込む。`,
+    vit:`体力${fmt(S.stats.vit)}に裏打ちされた揺るがぬ軸。長期戦でも剣先は下がらない。`,
+    men:`精神力${fmt(S.stats.men)}。殺気の中でも呼吸は静かに整っている。`,
+    def:`守備${fmt(S.stats.def)}の堅牢な構え。鍔と刃で攻撃線を封じる。`,
+    luk:`幸運${fmt(S.stats.luk)}。風向きも足場も、わずかにこちらへ味方している。`,
+    ki:`気力${fmt(S.stats.ki)}が全身を巡り、刀身の周囲で空気が震える。`,
+    foc:`集中${fmt(S.stats.foc)}。世界から雑音が消え、敵と切先だけが残る。`,
+    pre:`威圧${fmt(S.stats.pre)}が戦場を覆い、敵の踏み込みを鈍らせる。`
+  };
+  return [
+    lines[top],
+    `身体の剣格――力${fmt(S.stats.str)}・体力${fmt(S.stats.vit)}・守備${fmt(S.stats.def)}。`,
+    `技巧の剣格――技${fmt(S.stats.tec)}・素早さ${fmt(S.stats.agi)}・集中${fmt(S.stats.foc)}。`,
+    `心の剣格――精神${fmt(S.stats.men)}・気力${fmt(S.stats.ki)}・威圧${fmt(S.stats.pre)}・幸運${fmt(S.stats.luk)}。`,
+    `実戦値――攻${fmt(d.attack)}・防${fmt(d.defense)}・速${fmt(d.speed)}・会心${fmt(d.crit)}%・回避${fmt(d.dodge)}%。`
+  ];
+}
+function skillFlavor(sk){
+  const n = sk.name;
+  const rules = [
+    [/居合|抜刀|鞘走り|無明/,`鞘の内で極限まで圧縮した気を、抜刀の一瞬に解放する。銀の軌跡だけを残す超高速の一閃。`],
+    [/双剣|剣舞|二天|千鳥|双天|連環|乱舞/,`左右の刃が互いの死角を消し、途切れない斬撃の輪を描く。回避先まで次の刃が追い詰める。`],
+    [/大剣|叩き|地割り|山岳|破城|断岳|粉城|天地/,`全身の重さと剣の質量を一点へ集約。防御ごと叩き潰す衝撃が大地を割って走る。`],
+    [/炎|紅蓮|煉獄/,`刀身に紅蓮をまとわせ、斬撃の軌跡そのものを燃え上がらせる炎属性剣技。`],
+    [/氷|白亜|零/,`刃から冷気を放ち、斬られた箇所だけでなく周囲の動きまで凍結させる。`],
+    [/雷|紫電/,`雷光を刀身へ収束し、神経が反応するより早く敵を貫く電光の剣。`],
+    [/盾|聖|祈り|城壁|聖域|審判/,`剣と盾に聖気を巡らせ、守りを力へ変換する。光の城壁が攻撃を受け止める。`],
+    [/血|呪|冥|犠牲|黒蝕/,`自らの血と生命を刃へ捧げ、傷つくほど鋭さを増す禁忌の呪剣。赤黒い斬痕が敵を蝕む。`],
+    [/心眼|無念|無刀|流星|剣極|剣気/,`呼吸と気配から未来の一手を読み、最小の動きで攻防を同時に成立させる達人の剣理。`],
+    [/防|守|構え|受け流し|残心|静寂|誓約|巨体/,`足運び、重心、刃の角度を整え、次の攻防に崩れない剣の型を完成させる。`],
+    [/気合|放出|魔力剣装|真髄/,`丹田に集めた力を全身と刀身へ循環させ、剣技を放つための出力を引き上げる。`]
+  ];
+  const hit = rules.find(([re]) => re.test(n));
+  if(hit) return hit[1];
+  const classFlavor = {
+    kenshi:'基本に忠実な踏み込みから、無駄のない一閃を放つ正統剣技。',
+    iai:'静から動へ。鞘を加速器として用いる一撃必殺の抜刀術。',
+    nitou:'二本の刃を一つの流れとして操る、絶え間ない多段剣技。',
+    daitou:'強靱な体幹で巨剣を振り抜き、守りごと粉砕する重剣技。',
+    magi:'魔力を刃へ定着させ、属性現象と斬撃を同時に叩き込む魔剣技。',
+    seiken:'守護の力を剣へ変え、耐えながら勝機を作る聖なる剣技。',
+    juken:'生命と呪いを代価に、敵の内側から崩壊させる禁断剣技。',
+    kensei:'心眼で先を読み、攻撃が生まれる前に勝敗を決める剣聖の理。',
+    mumei:'音も予備動作も消し、相手が斬られた後に剣鳴りだけが届く無明の抜刀術。',
+    souten:'二刀の軌道を幾重にも交差させ、空間そのものを斬撃で埋め尽くす剣帝の連技。',
+    hajou:'大地を踏み砕く体重移動から、城壁ごと粉砕する超重量の王剣を放つ。',
+    madou:'複数属性の魔力を刃上で融合し、斬撃と魔力爆発を同時に発生させる皇剣。',
+    seigo:'受けた力さえ聖気へ変換し、巨大な守護剣として敵へ返す王盾の極意。',
+    meiju:'冥府の呪いと己の血を刃へ流し込み、生命を奪い返す剣鬼の禁術。'
+  };
+  return classFlavor[sk.cls] || '積み重ねた修練を一太刀へ変える、その流派だけの極意。';
+}
+function classStanceLine(cls){
+  const lines={
+    kenshi:'正眼。攻守どちらへも移れる、基本にして隙のない構え。',
+    iai:'鯉口へ親指を掛け、刃を鞘の闇へ隠す。勝負は抜く前に始まっている。',
+    nitou:'右の太刀を高く、左の太刀を低く。二つの間合いが敵を挟み込む。',
+    daitou:'巨剣を肩へ預け、地を踏み締める。一歩ごとに剣圧が増していく。',
+    magi:'刃へ魔力紋が灯り、炎・氷・雷の色が刀身を巡る。',
+    seiken:'盾を前へ、剣を胸元へ。攻撃を受け止めるほど聖気が高まる。',
+    juken:'刃で掌を浅く裂き、呪血を刀身へ吸わせる。赤黒い気配が揺らめく。',
+    kensei:'無構え。どこにも力みがなく、それゆえ全方向が斬撃の起点となる。',
+    mumei:'深く沈めた納刀姿勢。気配も殺気もなく、鞘の中だけで剣勢が膨張する。',
+    souten:'二刀が星の軌道を描き始める。近づくほど斬撃の密度が増していく。',
+    hajou:'王剣を地へ突き立てるだけで亀裂が走る。次の一撃は守りごと砕く。',
+    madou:'七色の魔力環が剣を囲み、属性同士が火花を散らして共鳴する。',
+    seigo:'黄金の聖域が足元へ広がる。剣と盾は一つの城塞となった。',
+    meiju:'鼓動に合わせて呪血の刃が脈打つ。傷と殺気がそのまま力へ変わる。'
+  };
+  return lines[cls] || '切先を敵へ向け、静かに間合いを測る。';
+}
+function skillPrelude(sk,d){
+  const focus = S.stats.foc >= S.level + 10 ? '研ぎ澄まされた集中が、技の輪郭を鮮明にする。' : '呼吸を整え、狙う一点へ意識を絞る。';
+  const ki = sk.ki ? `気力${sk.ki}を刀身へ注ぎ込む。` : sk.hpCost ? `生命力を${sk.hpCost}%、刃への代価として差し出す。` : '構えが静かに完成する。';
+  return [focus,ki,skillFlavor(sk)];
+}
+function basicSwordNarration(d){
+  const stat = weightedSwordStat();
+  const lines = {
+    str:['腰を深く落とし、渾身の袈裟斬りを叩き込む！','剛腕で刃を加速させ、防御ごと断つ横薙ぎ！'],
+    tec:['敵の剣線を見切り、手首の隙へ正確な切り返し！','刃と刃が触れた瞬間に角度を変え、鎧の継ぎ目を狙う！'],
+    agi:['一歩で間合いを消し、残像を残す斬り上げ！','低い踏み込みから死角へ回り、疾風の逆袈裟！'],
+    vit:['崩れない足腰で攻撃を押し返し、そのまま重い一太刀！','長い呼吸を保ったまま、正面から堂々と斬り結ぶ！'],
+    men:['敵の殺気に呑まれず、静かな呼吸から迷いのない一閃！','心を水面のように鎮め、殺気の起こりへ刃を置く！'],
+    def:['鍔で剣線を逸らし、守りから滑らかな反撃へ！','半身で受け流し、開いた胴へ鋭い切り返し！'],
+    luk:['足元の小石を踏み台に変え、予想外の角度から斬り込む！','偶然差した光が敵の目を奪う。その一瞬へ刃を走らせる！'],
+    ki:['気を刃先まで通し、空気を震わせる斬撃を放つ！','丹田から爆発的に気を巡らせ、剣圧を伴う一閃！'],
+    foc:['周囲の音が消える。見定めた一点だけを断つ！','敵の呼吸と刃筋が重なる瞬間へ、精密な一太刀！'],
+    pre:['鋭い殺気で敵の足を止め、真正面から斬り伏せる！','剣を振る前から場を制圧し、怯んだ敵へ踏み込む！']
+  };
+  return choice(lines[stat]);
+}
+function impactLine(dmg,maxHP,crit=false){
+  const ratio = dmg / Math.max(1,maxHP);
+  if(crit) return choice(['刃が急所を捉え、鮮烈な火花と共に深く斬り裂いた！','完全な刃筋。甲高い剣鳴りの後、致命の斬痕が走る！']);
+  if(ratio >= .35) return '凄まじい剣圧が防御を砕き、敵の身体を大きく吹き飛ばす！';
+  if(ratio >= .18) return '重い手応え。刃が守りを割り、深い傷を刻む！';
+  if(ratio >= .07) return '確かな手応えと共に、鋭い斬痕が走る。';
+  return '浅い。敵は刃を滑らせ、致命傷を避けた。';
+}
+function makeEnemySkills(name,boss=false){
+  let skills;
+  if(/居合|暗殺|剣聖|達人|剣客/.test(name)){
+    skills=[
+      {name:'敵技・霞抜き',power:1.35,crit:18,text:'呼吸の切れ目を狙い、鞘走る刃が視界から消える！'},
+      {name:'敵技・残心返し',power:1.05,defDown:12,text:'こちらの斬撃を紙一重で流し、崩れた体勢へ返す刀！'},
+      {name:'敵技・影縫い',power:.85,spdDown:18,text:'足運びを封じる低い斬撃が、影を縫うように走る！'}
+    ];
+  }else if(/大剣|鎧|ゴブリン|坑道|地底|龍/.test(name)){
+    skills=[
+      {name:'敵技・兜割り',power:1.55,text:'頭上へ掲げた得物が、地響きと共に一直線に振り下ろされる！'},
+      {name:'敵技・崩岩撃',power:1.25,defDown:15,text:'守りの上から骨まで揺らす、岩塊のような一撃！'},
+      {name:'敵技・暴風薙ぎ',power:.72,hits:2,text:'力任せの横薙ぎが二度、逃げ場を潰しながら迫る！'}
+    ];
+  }else if(/魔|亡霊|呪|妖|霊|精|剣憑き/.test(name)){
+    skills=[
+      {name:'敵技・怨刃',power:1.2,curse:true,text:'黒い怨念をまとった刃が、肉体と精神を同時に斬る！'},
+      {name:'敵技・鬼火剣',power:1.15,burn:true,text:'青白い鬼火が剣へ絡みつき、燃える斬撃となって飛来する！'},
+      {name:'敵技・凍魂斬',power:1.0,freeze:true,text:'魂まで凍らせる冷気が刃から噴き出す！'}
+    ];
+  }else{
+    skills=[
+      {name:'敵技・牙裂き',power:1.3,text:'獣じみた踏み込みから、牙のような斬撃が迫る！'},
+      {name:'敵技・連爪',power:.68,hits:2,text:'左右から連続する爪撃が退路を断つ！'},
+      {name:'敵技・威嚇突進',power:1.0,atkDown:10,text:'咆哮と共に突進し、こちらの剣気を乱す！'}
+    ];
+  }
+  if(boss) skills.push({name:'主技・絶命剣',power:1.85,crit:20,text:'主の殺気が爆発する。全身全霊の必殺剣が空間を裂く！'});
+  return skills;
+}
 function expNeeded(lv){
   const l = Math.max(1, Math.floor(lv));
   const v = 85 + l*55 + l*l*9;
@@ -1032,7 +1188,7 @@ function getDerived(){
     maxHP, maxKI, attack, defense, speed, crit, dodge, skillPower,
     lifesteal:p.lifesteal + eq.lifesteal,
     counter:p.counter + eq.counter,
-    pvpBonus:p.pvp + eq.pvp,
+    pvpBonus:p.pvp + eq.pvp + S.stats.pre*0.15,
     expBonus:p.expBonus + eq.expBonus,
     goldBonus:p.goldBonus + eq.goldBonus
   };
@@ -1129,7 +1285,7 @@ function makeEnemy(areaId){
 
   return {
     name, level:lvl, maxHP, hp:maxHP, atk, def, speed, exp, gold,
-    isPvp:false, boss, rating:0, opponentId:null
+    isPvp:false, boss, rating:0, opponentId:null, skills:makeEnemySkills(name,boss)
   };
 }
 function makePvpEnemy(op){
@@ -1145,13 +1301,14 @@ function makePvpEnemy(op){
   return {
     name:`${op.name}（${op.title}）`,
     level:lvl, maxHP, hp:maxHP, atk, def, speed, exp, gold,
-    isPvp:true, boss:false, rating:op.rating, opponentId:op.id
+    isPvp:true, boss:false, rating:op.rating, opponentId:op.id,
+    skills:makeEnemySkills(op.title || op.name,false)
   };
 }
 
-function blog(msg){
+function blog(msg,type='system'){
   if(!S.battle) return;
-  S.battle.log.push(msg);
+  S.battle.log.push({text:String(msg),type});
   if(S.battle.log.length > 140) S.battle.log.shift();
 }
 function initBattle(enemy, isPvp, opponentId){
@@ -1165,7 +1322,10 @@ function initBattle(enemy, isPvp, opponentId){
     shield:0,
     stacks:{draw:0, combo:0, destroy:0, mana:0, guard:0, blood:0, mind:0},
     buffs:{atk:0, def:0, dodge:0, crit:0, turns:0},
-    statuses:{dodgeNext:false, regen:0, regenTurns:0},
+    statuses:{
+      dodgeNext:false, regen:0, regenTurns:0, freeze:0,
+      burn:{turns:0,value:0}, curse:{turns:0,value:0}
+    },
     enemyStatuses:{
       burn:{turns:0,value:0},
       bleed:{turns:0,value:0},
@@ -1184,8 +1344,17 @@ function initBattle(enemy, isPvp, opponentId){
     turn:1
   };
 
-  blog(`${enemy.name}が現れた！`);
-  if(isPvp) blog('ランキング戦開始！');
+  blog(`―― 剣戟開始・第1合 ――`,'system');
+  blog(`${enemy.name}が間合いへ入った。Lv${fmt(enemy.level)}、攻${fmt(enemy.atk)}・防${fmt(enemy.def)}・速${fmt(enemy.speed)}。`,'enemy');
+  const cls = CLASSES[S.classId];
+  blog(`${cls.name}の構え――${classStanceLine(S.classId)}`,'stance');
+  for(const line of swordProfileLines(d)) blog(line,'stat');
+  if(S.stats.pre >= enemy.level + 5){
+    S.battle.enemyDebuffs.atk = Math.max(S.battle.enemyDebuffs.atk,10);
+    S.battle.enemyDebuffs.turns = 3;
+    blog(`威圧${fmt(S.stats.pre)}が敵の闘気を押し返す。敵攻撃-10%（3ターン）。`,'stat');
+  }
+  if(isPvp) blog('互いの剣格を賭けたランキング戦が始まる！','system');
 }
 function canAct(){ return S.battle && !S.battle.over; }
 function addStack(type, amount){
@@ -1243,14 +1412,14 @@ function dealPlayerHits(d, sk, stackBonus, name){
   for(let i=0;i<hits;i++){
     if(b.enemy.hp <= 0) break;
     if(Math.random() < 0.04){
-      blog(`${b.enemy.name}はかわした！`);
+      blog(`${b.enemy.name}が剣筋を読み、紙一重で身を逸らした！`,'enemy');
       continue;
     }
 
     let power = (sk.power || 1) + stackBonus;
     if(sk.lowHpBoost && b.playerHP < b.maxHP*0.3){
       power *= 1.5;
-      blog('窮地の一撃！');
+      blog(`体力が尽きかけても剣先は下がらない。精神力${fmt(S.stats.men)}が窮地を力へ変える！`,'stat');
     }
 
     const critChance = d.crit + (b.buffs.crit || 0) + (sk.critBonus || 0);
@@ -1268,14 +1437,15 @@ function dealPlayerHits(d, sk, stackBonus, name){
 
     b.enemy.hp -= dmg;
     total += dmg;
-    blog(`${name}が命中！ ${fmt(dmg)}ダメージ！${crit ? '（会心の一閃！）' : ''}`);
+    blog(`${name}${hits > 1 ? `・${i+1}撃目` : ''}――${fmt(dmg)}ダメージ！`+(crit ? '【会心】' : ''),crit ? 'crit' : 'impact');
+    blog(impactLine(dmg,b.enemy.maxHP,crit),crit ? 'crit' : 'tech');
   }
 
   const healPct = (sk.healDamage || 0) + d.lifesteal;
   if(total > 0 && healPct > 0){
     const heal = Math.floor(total * healPct / 100);
     b.playerHP = Math.min(b.maxHP, b.playerHP + heal);
-    blog(`吸血の効果でHPが${fmt(heal)}回復した！`);
+    blog(`刃が奪った生命力が傷口を塞ぐ。HP${fmt(heal)}回復！`,'stat');
   }
 
   return total;
@@ -1285,7 +1455,9 @@ function basicAttack(d){
   b.playerKI = Math.min(b.maxKI, b.playerKI + 6);
   const res = classResource(S.classId);
   if(res) addStack(res, 1);
-  blog('通常攻撃！');
+  blog(basicSwordNarration(d),'tech');
+  if(S.stats.tec >= S.level + 12) blog(`技${fmt(S.stats.tec)}が最短の刃筋を選び、会心点へ切先を導く。`,'stat');
+  if(S.stats.str >= S.level + 12) blog(`力${fmt(S.stats.str)}の剣圧が敵の防御姿勢を軋ませる。`,'stat');
   dealPlayerHits(d, {power:1, hits:1}, 0, '通常攻撃');
   return true;
 }
@@ -1294,7 +1466,7 @@ function useSkillById(id, d){
   const sk = SKILLS[id];
   if(!sk || !hasSkill(id) || sk.type !== 'active' || !usableSkillIds('active').includes(id)) return false;
   if(!skillUsable(sk)){
-    blog('そのスキルは使えない。');
+    blog('気力・生命・専用ゲージのいずれかが足りず、技の型を完成できない。','system');
     return false;
   }
 
@@ -1304,10 +1476,11 @@ function useSkillById(id, d){
   if(sk.hpCost){
     const cost = Math.floor(b.maxHP * sk.hpCost / 100);
     b.playerHP -= cost;
-    blog(`HPを${fmt(cost)}消費した！`);
+    blog(`刃へ生命を捧げ、HP${fmt(cost)}を消費！`,'skill');
   }
 
-  blog(`${sk.name}！`);
+  blog(`◆ ${sk.name} ◆`,'skill');
+  for(const line of skillPrelude(sk,d)) blog(line,'skill');
 
   let stackBonus = 0;
   if(fx.stackConsume){
@@ -1317,64 +1490,64 @@ function useSkillById(id, d){
       const consumed = Math.min(avail, fx.stackConsume.max || avail);
       b.stacks[type] -= consumed;
       stackBonus = consumed * (fx.stackConsume.perPower || 0);
-      blog(`${RESOURCE_NAMES[type]}を${consumed}消費！ 威力+${Math.round(stackBonus*100)}%`);
+      blog(`${RESOURCE_NAMES[type]}${consumed}段階を解放。蓄積した剣勢が威力を+${Math.round(stackBonus*100)}%押し上げる！`,'stat');
     }
   }
 
   if(fx.gainKi){
     b.playerKI = Math.min(b.maxKI, b.playerKI + fx.gainKi);
-    blog(`気力が${fx.gainKi}回復した！`);
+    blog(`深い呼吸で気脈を整える。気力${fx.gainKi}回復！`,'stat');
   }
   if(fx.healMax){
     const heal = Math.floor(b.maxHP * fx.healMax / 100);
     b.playerHP = Math.min(b.maxHP, b.playerHP + heal);
-    blog(`HPが${fmt(heal)}回復した！`);
+    blog(`剣気が全身を巡り、傷を内側から塞ぐ。HP${fmt(heal)}回復！`,'stat');
   }
   if(fx.shieldPower){
     const shield = Math.floor(d.defense * fx.shieldPower + d.attack * 0.25);
     b.shield += shield;
-    blog(`シールドを${fmt(shield)}展開した！`);
+    blog(`刃と守りの気が重なり、耐久${fmt(shield)}の光壁を展開！`,'defense');
   }
   if(fx.selfAtk){
     b.buffs.atk = Math.min(80, b.buffs.atk + fx.selfAtk);
     b.buffs.turns = fx.selfTurns || 3;
-    blog(`攻撃力+${fx.selfAtk}%！`);
+    blog(`踏み込みと剣圧が増す。攻撃力+${fx.selfAtk}%！`,'stat');
   }
   if(fx.selfDef){
     b.buffs.def = Math.min(80, b.buffs.def + fx.selfDef);
     b.buffs.turns = fx.selfTurns || 3;
-    blog(`防御力+${fx.selfDef}%！`);
+    blog(`重心が沈み、崩れぬ構えが完成。防御力+${fx.selfDef}%！`,'defense');
   }
   if(fx.selfDodge){
     b.buffs.dodge = Math.min(40, b.buffs.dodge + fx.selfDodge);
     b.buffs.turns = fx.selfTurns || 3;
-    blog(`回避+${fx.selfDodge}%！`);
+    blog(`足捌きが残像を生む。回避+${fx.selfDodge}%！`,'stat');
   }
   if(fx.selfCrit){
     b.buffs.crit = Math.min(40, b.buffs.crit + fx.selfCrit);
     b.buffs.turns = fx.selfTurns || 3;
-    blog(`会心+${fx.selfCrit}%！`);
+    blog(`切先が急所へ吸い寄せられる。会心+${fx.selfCrit}%！`,'stat');
   }
   if(fx.dodgeNext){
     b.statuses.dodgeNext = true;
-    blog('次の攻撃を必ず回避する態勢に入った！');
+    blog(`心眼が敵の次手を映し出す。次の攻撃を確実に回避！`,'defense');
   }
 
   if(b.enemy.hp > 0){
     if(fx.enemyAtkDown){
       b.enemyDebuffs.atk = Math.max(b.enemyDebuffs.atk, fx.enemyAtkDown);
       b.enemyDebuffs.turns = 3;
-      blog(`敵の攻撃力を${fx.enemyAtkDown}%低下！`);
+      blog(`剣圧で敵の構えを押し潰す。敵攻撃-${fx.enemyAtkDown}%！`,'stat');
     }
     if(fx.enemyDefDown){
       b.enemyDebuffs.def = Math.max(b.enemyDebuffs.def, fx.enemyDefDown);
       b.enemyDebuffs.turns = 3;
-      blog(`敵の防御力を${fx.enemyDefDown}%低下！`);
+      blog(`防具と構えの継ぎ目を断つ。敵防御-${fx.enemyDefDown}%！`,'stat');
     }
     if(fx.enemySpdDown){
       b.enemyDebuffs.spd = Math.max(b.enemyDebuffs.spd, fx.enemySpdDown);
       b.enemyDebuffs.turns = 3;
-      blog(`敵の素早さを${fx.enemySpdDown}%低下！`);
+      blog(`足運びを斬って機動を奪う。敵速度-${fx.enemySpdDown}%！`,'stat');
     }
     if(fx.burn) setEnemyStatus('burn', 3, Math.floor(d.attack * 0.35));
     if(fx.bleed) setEnemyStatus('bleed', 3, Math.floor(d.attack * 0.30));
@@ -1382,7 +1555,7 @@ function useSkillById(id, d){
     if(fx.freeze) setEnemyStatus('freeze', 2);
     if(fx.stunChance && chance(fx.stunChance)){
       setEnemyStatus('stun', 1);
-      blog('敵は怯んでいる！');
+      blog(`衝撃が敵の体勢を完全に崩した。敵は怯んでいる！`,'impact');
     }
   }
 
@@ -1401,66 +1574,96 @@ function enemyTurn(d){
   if(!b || b.over) return;
 
   if(b.enemyStatuses.stun > 0){
-    blog(`${b.enemy.name}は動けない！`);
+    blog(`${b.enemy.name}は崩された構えを戻せず、剣を振れない！`,'enemy');
     b.enemyStatuses.stun--;
     return;
   }
   if(b.enemyStatuses.freeze > 0 && chance(25)){
-    blog(`${b.enemy.name}は凍結して動けない！`);
+    blog(`凍結した関節が軋み、${b.enemy.name}の攻撃が止まる！`,'enemy');
     return;
   }
   if(b.statuses.dodgeNext){
     b.statuses.dodgeNext = false;
-    blog(`あなたは${b.enemy.name}の攻撃を確実に回避した！`);
+    blog(`心眼が捉えた未来どおり半歩だけ退く。敵の刃は虚空を斬った！`,'defense');
     return;
   }
 
-  const dodgeChance = Math.min(65, d.dodge + b.buffs.dodge + (b.enemyStatuses.freeze > 0 ? 10 : 0));
+  const dodgeChance = Math.max(0,Math.min(65, d.dodge + b.buffs.dodge + (b.enemyStatuses.freeze > 0 ? 10 : 0) - (b.statuses.freeze > 0 ? 15 : 0)));
   if(Math.random()*100 < dodgeChance){
-    blog(`あなたは${b.enemy.name}の攻撃をかわした！`);
+    const dodgeLine = S.stats.agi >= S.stats.def
+      ? `素早さ${fmt(S.stats.agi)}の足捌き。刃が届く寸前に間合いの外へ消える！`
+      : `技${fmt(S.stats.tec)}で剣先の起こりを読み、最小の動きでかわした！`;
+    blog(dodgeLine,'stat');
     return;
   }
 
-  const r = Math.random();
-  let power = 1;
-  let label = '攻撃';
-  if(r < 0.18){
-    power = 1.35;
-    label = '強撃';
-  }else if(r < 0.30){
-    power = 0.8;
-    label = '牽制撃';
+  const useEnemySkill = Array.isArray(b.enemy.skills) && chance(b.enemy.boss ? 62 : 42);
+  let move;
+  if(useEnemySkill){
+    move = choice(b.enemy.skills);
+    blog(`◆ ${move.name} ◆`,'enemySkill');
+    blog(move.text,'enemySkill');
+  }else{
+    move = choice([
+      {name:'踏み込み斬り',power:1.0,text:'敵は間合いを詰め、肩口へ鋭く斬り下ろす！'},
+      {name:'逆袈裟',power:1.12,text:'低い姿勢から刃が跳ね上がり、逆袈裟に襲いかかる！'},
+      {name:'牽制突き',power:.82,text:'視線を散らす小さな動きから、喉元へ真っ直ぐな突き！'},
+      {name:'渾身斬り',power:1.38,text:'大きく息を吐き、全体重を乗せた斬撃を振り抜く！'}
+    ]);
+    blog(`${b.enemy.name}の${move.name}！`,'enemy');
+    blog(move.text,'enemy');
   }
 
   const enemyAtk = b.enemy.atk * (1 - Math.max(0, b.enemyDebuffs.atk)/100);
   let playerDef = d.defense * (1 + b.buffs.def/100);
-  if(b.playerDefending) playerDef *= 1.6;
-
-  const crit = chance(5);
-  let dmg = calcDamage(enemyAtk, playerDef, power, {crit});
-  const menReduce = Math.min(25, S.stats.men * 0.12);
-  dmg = Math.max(1, Math.floor(dmg * (1 - menReduce/100)));
-
-  let absorbed = 0;
-  if(b.shield > 0){
-    absorbed = Math.min(b.shield, dmg);
-    b.shield -= absorbed;
-    dmg -= absorbed;
+  if(b.playerDefending){
+    playerDef *= 1.6;
+    blog(`守備${fmt(S.stats.def)}の構え。刃を斜めに合わせ、衝撃を地面へ逃がす！`,'defense');
   }
 
-  if(absorbed > 0) blog(`シールドが${fmt(absorbed)}吸収した！`);
-  if(dmg > 0){
-    b.playerHP -= dmg;
-    blog(`${b.enemy.name}の${label}！ ${fmt(dmg)}ダメージ！${crit ? '（痛恨！）' : ''}`);
-  }else{
-    blog(`${b.enemy.name}の${label}を防ぎ切った！`);
+  const hits = move.hits || 1;
+  let totalDamage = 0;
+  for(let i=0;i<hits;i++){
+    const crit = chance(5 + (move.crit || 0));
+    let raw = calcDamage(enemyAtk, playerDef, move.power || 1, {crit});
+    const menReduce = Math.min(25, S.stats.men * 0.12);
+    let dmg = Math.max(1, Math.floor(raw * (1 - menReduce/100)));
+
+    if(chance(Math.min(12,S.stats.luk*.08))){
+      const before = dmg;
+      dmg = Math.max(1,Math.floor(dmg*.5));
+      blog(`幸運${fmt(S.stats.luk)}――刃が鍔へ偶然滑り、威力を${fmt(before-dmg)}軽減！`,'stat');
+    }
+    if(menReduce >= 5) blog(`精神力${fmt(S.stats.men)}が痛みと恐怖を抑え、衝撃を${Math.floor(menReduce)}%軽減。`,'stat');
+
+    let absorbed = 0;
+    if(b.shield > 0){
+      absorbed = Math.min(b.shield, dmg);
+      b.shield -= absorbed;
+      dmg -= absorbed;
+    }
+    if(absorbed > 0) blog(`光壁と剣が激突。シールドが${fmt(absorbed)}を吸収！`,'defense');
+    if(dmg > 0){
+      b.playerHP -= dmg;
+      totalDamage += dmg;
+      blog(`${hits > 1 ? `${i+1}撃目、` : ''}${fmt(dmg)}ダメージ！${crit ? '【敵会心】' : ''}`,crit ? 'enemySkill' : 'enemy');
+    }else{
+      blog(`刃と刃が噛み合う。守り切り、ダメージを通さない！`,'defense');
+    }
   }
+
+  if(move.defDown){ b.buffs.def=Math.max(-45,b.buffs.def-move.defDown); b.buffs.turns=3; blog(`構えを崩され、防御-${move.defDown}%！`,'enemySkill'); }
+  if(move.atkDown){ b.buffs.atk=Math.max(-45,b.buffs.atk-move.atkDown); b.buffs.turns=3; blog(`剣気を乱され、攻撃-${move.atkDown}%！`,'enemySkill'); }
+  if(move.spdDown){ b.buffs.dodge=Math.max(-35,b.buffs.dodge-move.spdDown); b.buffs.turns=3; blog(`足運びを封じられ、回避-${move.spdDown}%！`,'enemySkill'); }
+  if(move.burn && totalDamage>0){ b.statuses.burn={turns:3,value:Math.max(1,Math.floor(enemyAtk*.18))}; blog('鬼火が傷口へ燃え移った。3ターン炎上！','enemySkill'); }
+  if(move.curse && totalDamage>0){ b.statuses.curse={turns:3,value:Math.max(1,Math.floor(enemyAtk*.14))}; blog('怨念が気脈へ侵入した。3ターン呪い！','enemySkill'); }
+  if(move.freeze && totalDamage>0){ b.statuses.freeze=2; blog('冷気が足を凍らせる。2ターン回避と速度が低下！','enemySkill'); }
 
   if(d.counter > 0){
     const ref = Math.floor(enemyAtk * d.counter / 100);
     if(ref > 0){
       b.enemy.hp -= ref;
-      blog(`反撃！ ${fmt(ref)}ダメージを返した！`);
+      blog(`敵の刃を受けた瞬間、反射の剣が走る！ ${fmt(ref)}反撃ダメージ！`,'tech');
     }
   }
 }
@@ -1472,7 +1675,7 @@ function endRound(d){
     const st = b.enemyStatuses[type];
     if(st.turns > 0 && b.enemy.hp > 0){
       b.enemy.hp -= st.value;
-      blog(`${type === 'burn' ? '炎' : type === 'bleed' ? '出血' : type === 'curse' ? '呪い' : '毒'}が敵を蝕む！ ${fmt(st.value)}ダメージ！`);
+      blog(`${type === 'burn' ? '炎が斬痕を焼く' : type === 'bleed' ? '斬り開いた傷から血が流れる' : type === 'curse' ? '呪いが敵の内側を蝕む' : '毒が巡る'}。${fmt(st.value)}ダメージ！`,'impact');
       st.turns--;
       if(b.enemy.hp <= 0){
         victory();
@@ -1483,9 +1686,20 @@ function endRound(d){
 
   if(b.enemyStatuses.freeze > 0) b.enemyStatuses.freeze--;
 
+  for(const type of ['burn','curse']){
+    const st = b.statuses[type];
+    if(st && st.turns > 0){
+      b.playerHP -= st.value;
+      blog(`${type === 'burn' ? '鬼火が傷を焼く' : '呪いが気脈を蝕む'}。${fmt(st.value)}継続ダメージ！`,'enemySkill');
+      st.turns--;
+      if(checkPlayerDead()) return;
+    }
+  }
+  if(b.statuses.freeze > 0) b.statuses.freeze--;
+
   if(b.statuses.regenTurns > 0){
     b.playerHP = Math.min(b.maxHP, b.playerHP + b.statuses.regen);
-    blog(`再生でHPが${fmt(b.statuses.regen)}回復した！`);
+    blog(`整えた呼吸が生命力を巡らせ、HP${fmt(b.statuses.regen)}回復。`,'stat');
     b.statuses.regenTurns--;
   }
 
@@ -1504,6 +1718,7 @@ function endRound(d){
   }
 
   b.turn++;
+  blog(`―― 第${fmt(b.turn)}合 ――`,'system');
 }
 function checkPlayerDead(){
   const b = S.battle;
@@ -1526,7 +1741,8 @@ function performAction(action){
     b.playerKI = Math.min(b.maxKI, b.playerKI + 20);
     const res = classResource(S.classId);
     if(res === 'guard') addStack('guard', 1);
-    blog('防御に専念し、気力を+20した。');
+    blog(`刃を正中線へ立て、守備${fmt(S.stats.def)}の型で敵の剣路を塞ぐ。`,'defense');
+    blog(`呼吸を乱さず攻撃を待つ。気力+20。`,'stat');
     enemyTurn(d);
     if(checkPlayerDead()) return;
     if(b.enemy.hp <= 0){ victory(); return; }
@@ -1537,9 +1753,11 @@ function performAction(action){
     return;
   }
 
-  const playerFirst = d.speed >= enemySpeed(b);
+  const effectivePlayerSpeed = d.speed * (b.statuses.freeze > 0 ? .6 : 1);
+  const playerFirst = effectivePlayerSpeed >= enemySpeed(b);
   if(!playerFirst){
-    blog(`${b.enemy.name}の方が速い！`);
+    if(b.statuses.freeze > 0) blog(`凍った足が踏み込みを遅らせる。${b.enemy.name}が先手を取った！`,'enemy');
+    else blog(`敵の初動がわずかに上回る。${b.enemy.name}が先手！`,'enemy');
     enemyTurn(d);
     if(checkPlayerDead()) return;
     if(b.enemy.hp <= 0){ victory(); return; }
@@ -1580,7 +1798,7 @@ function fleeAction(){
   const c = Math.max(20, Math.min(90, 50 + (d.speed - enemySpeed(b)) + S.stats.luk*0.2));
 
   if(chance(c)){
-    blog('あなたは逃げ切った！');
+    blog(`剣先で敵の視線を誘導し、一気に間合いを切った。離脱成功！`,'result');
     b.over = true;
     b.result = 'flee';
     save();
@@ -1588,7 +1806,7 @@ function fleeAction(){
     return;
   }
 
-  blog('逃げられない！');
+  blog(`退路へ刃が回り込む。敵に間合いを支配され、離脱できない！`,'enemy');
   enemyTurn(d);
   if(checkPlayerDead()) return;
   if(b.enemy.hp <= 0){ victory(); return; }
@@ -1625,7 +1843,8 @@ function victory(){
 
   b.over = true;
   b.result = 'win';
-  blog(`${b.enemy.name}を倒した！`);
+  blog(`決着――${b.enemy.name}の剣が地に落ちる。`,'result');
+  blog(`${CLASSES[S.classId].name}として積み重ねた剣理が、また一段深まった。`,'stance');
 
   const d = getDerived();
   const expGain = Math.floor(b.enemy.exp * (1 + d.expBonus/100));
@@ -1672,7 +1891,8 @@ function defeat(){
 
   b.over = true;
   b.result = 'lose';
-  blog('あなたは倒れた……');
+  blog(`剣を握る手から力が抜ける。あなたは膝をついた……`,'enemySkill');
+  blog(`敗北。しかし、受けた刃筋は次の修練の糧となる。`,'stance');
 
   S.losses++;
   const lossGold = Math.floor(S.gold * 0.1);
@@ -1913,8 +2133,8 @@ window.G = G;
 function titleView(){
   return `
   <div class="panel center">
-    <h1 class="title">剣の達人への道 最終職分岐版</h1>
-    <p class="subtitle">14職業／最終職分岐／スキル継承枠／装備ドロップ／モックPVP</p>
+    <h1 class="title">剣の達人への道 剣戟演出版</h1>
+    <p class="subtitle">剣格反映ログ／敵固有剣技／全技演出説明／14職業／最終職分岐</p>
     <div class="flex" style="justify-content:center;margin-top:14px">
       <button class="primary" onclick="G.toCreate()">新しく始める</button>
       ${S.name ? `<button onclick="G.nav('adventure')">続きから（${esc(S.name)}）</button>` : ''}
@@ -2117,6 +2337,7 @@ function skillsView(){
         </div>
         <div class="small">前提：${reqText}</div>
         <div>${selected.desc}</div>
+        <div class="skillFlavor"><b>技のイメージ</b><br>${skillFlavor(selected)}</div>
         <div style="margin-top:8px">
           ${hasSkill(selected.id)
             ? `<span class="good">習得済み</span>
@@ -2322,13 +2543,13 @@ function battleView(){
       <button onclick="G.flee()">逃げる</button>
       <div class="skillButtons">
         ${activeSkills.map(sk => `
-          <button onclick="G.useSkill('${sk.id}')" ${skillUsable(sk) ? '' : 'disabled'} title="${esc(sk.desc)}">
+          <button onclick="G.useSkill('${sk.id}')" ${skillUsable(sk) ? '' : 'disabled'} title="${esc(sk.desc + ' ' + skillFlavor(sk))}">
             ${sk.name}<br>
             <span class="small">
               ${sk.ki ? `KI${sk.ki}` : ''}
               ${sk.hpCost ? `HP${sk.hpCost}%` : ''}
               ${sk.fx && sk.fx.stackConsume && sk.fx.stackConsume.required ? ` / ${RESOURCE_NAMES[sk.fx.stackConsume.type]}必須` : ''}
-            </span>
+            </span><br><span class="small">${skillFlavor(sk).slice(0,34)}…</span>
           </button>
         `).join('')}
       </div>
@@ -2349,6 +2570,9 @@ function battleView(){
         <div>${stackPills}</div>
         ${b.shield > 0 ? `<span class="pill good">シールド ${fmt(b.shield)}</span>` : ''}
         ${b.statuses.dodgeNext ? '<span class="pill good">必中回避</span>' : ''}
+        ${b.statuses.burn.turns > 0 ? `<span class="pill bad">炎上${b.statuses.burn.turns}</span>` : ''}
+        ${b.statuses.curse.turns > 0 ? `<span class="pill bad">呪い${b.statuses.curse.turns}</span>` : ''}
+        ${b.statuses.freeze > 0 ? `<span class="pill bad">凍結${b.statuses.freeze}</span>` : ''}
         ${b.playerDefending ? '<span class="pill">防御中</span>' : ''}
       </div>
 
@@ -2359,13 +2583,17 @@ function battleView(){
         <div class="bar enemy"><div style="width:${ehpPct}%"></div></div>
         <div class="small">HP ${fmt(Math.max(0, b.enemy.hp))} / ${fmt(b.enemy.maxHP)}</div>
         ${b.isPvp ? `<div class="small">Rating ${fmt(b.enemy.rating)}</div>` : ''}
+        ${Array.isArray(b.enemy.skills) ? `<div class="small">警戒技：${b.enemy.skills.map(s => s.name.replace(/^敵技・|^主技・/, '')).join('／')}</div>` : ''}
         <div>${enemyStatusPills}</div>
         ${b.enemy.boss ? '<span class="pill warn">BOSS</span>' : ''}
       </div>
     </div>
 
     <div class="log">
-      ${b.log.map(l => `<div>${l}</div>`).join('')}
+      ${b.log.map(l => {
+        const entry = typeof l === 'string' ? {text:l,type:'system'} : l;
+        return `<div><span class="log-${esc(entry.type || 'system')}">${esc(entry.text)}</span></div>`;
+      }).join('')}
     </div>
 
     <div class="actions">${actions}</div>
