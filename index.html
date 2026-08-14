@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>剣の達人への道 強化版</title>
+<title>剣の達人への道 最終職分岐版</title>
 <style>
 :root{
   --bg:#0b0b10;
@@ -308,7 +308,15 @@ const STACK_MAX = {
   mind:3
 };
 
-const CLASS_ORDER = ['kenshi','iai','nitou','daitou','magi','seiken','juken','kensei'];
+const CLASS_ORDER = [
+  'kenshi','iai','nitou','daitou','magi','seiken','juken',
+  'kensei','mumei','souten','hajou','madou','seigo','meiju'
+];
+const FINAL_CLASS_FROM = {
+  kensei:'kenshi', mumei:'iai', souten:'nitou', hajou:'daitou',
+  madou:'magi', seigo:'seiken', meiju:'juken'
+};
+const ADVANCED_CLASSES = ['iai','nitou','daitou','magi','seiken','juken'];
 const CLASSES = {
   kenshi:{
     name:'剣士', reqLevel:1, base:true,
@@ -354,9 +362,45 @@ const CLASSES = {
   },
   kensei:{
     name:'剣聖', reqLevel:35,
-    desc:'あらゆる剣を俯瞰し、心眼で未来を読む剣の到達点。',
-    mechanic:'心眼ゲージを使い、回避・制御・大斬りを兼ねる。',
-    hp:1.20, atk:1.35, def:1.15, spd:1.25, skill:1.30
+    desc:'剣士の基本を貫いた者だけが至る、万能の剣の到達点。',
+    mechanic:'剣士からのみ転職可能。心眼で回避・制御・大斬りを兼ねる。',
+    hp:1.10, atk:1.18, def:1.10, spd:1.15, skill:1.15
+  },
+  mumei:{
+    name:'無明剣豪', reqLevel:35,
+    desc:'光すら置き去りにする、居合の最終到達点。',
+    mechanic:'居合の達人からのみ転職可能。抜刀を極限火力へ変える。',
+    hp:.92, atk:1.48, def:.88, spd:1.32, skill:1.18
+  },
+  souten:{
+    name:'双天剣帝', reqLevel:35,
+    desc:'二つの刃で天を覆う連撃の支配者。',
+    mechanic:'二刀流剣士からのみ転職可能。連撃数と回避を極める。',
+    hp:1.02, atk:1.25, def:.98, spd:1.42, skill:1.15
+  },
+  hajou:{
+    name:'破城剣王', reqLevel:35,
+    desc:'城壁さえ一撃で断つ、重量剣の王。',
+    mechanic:'大剣の覇王からのみ転職可能。破壊と耐久を極める。',
+    hp:1.38, atk:1.55, def:1.22, spd:.70, skill:1.05
+  },
+  madou:{
+    name:'魔導剣皇', reqLevel:35,
+    desc:'剣と魔法の境界を消し去った魔剣の皇。',
+    mechanic:'魔剣士からのみ転職可能。属性・状態異常・吸収を極める。',
+    hp:1.02, atk:1.12, def:.98, spd:1.10, skill:1.52
+  },
+  seigo:{
+    name:'聖護剣王', reqLevel:35,
+    desc:'不落の聖域を背負う守護者の王。',
+    mechanic:'聖盾剣士からのみ転職可能。防御・回復・反撃を極める。',
+    hp:1.45, atk:1.00, def:1.58, spd:.86, skill:1.08
+  },
+  meiju:{
+    name:'冥呪剣鬼', reqLevel:35,
+    desc:'命を燃やし、呪いそのものとなった剣鬼。',
+    mechanic:'呪剣士からのみ転職可能。自傷・吸血・継続被害を極める。',
+    hp:.88, atk:1.38, def:.88, spd:1.18, skill:1.38
   }
 };
 
@@ -591,6 +635,108 @@ const SKILLS = {
     id:'kensei_okui', cls:'kensei', name:'奥義・剣極一閃', tier:3, col:1, req:['kensei_mugen','kensei_ki'], sp:8, type:'active', ki:40,
     power:4.0, ignoreDef:30, fx:{stackConsume:{type:'mind', perPower:0.5, max:3}},
     desc:'攻撃力の400%ダメージ。防御30%無視。心眼1につき威力+50%。'
+  },
+
+  mumei_shinkuu:{
+    id:'mumei_shinkuu', cls:'mumei', name:'真空鞘走り', tier:1, col:0, req:[], sp:4, type:'active', ki:8,
+    power:1.5, ignoreDef:20, fx:{stackGain:{type:'draw',amount:1}}, desc:'150%ダメージ。防御20%無視。抜刀+1。'
+  },
+  mumei_seijaku:{
+    id:'mumei_seijaku', cls:'mumei', name:'絶対静寂', tier:1, col:1, req:[], sp:4, type:'passive',
+    passive:{crit:12,atkPct:8}, desc:'会心+12%、攻撃+8%。'
+  },
+  mumei_setsuna:{
+    id:'mumei_setsuna', cls:'mumei', name:'刹那・無影', tier:2, col:0, req:['mumei_shinkuu'], sp:6, type:'active', ki:24,
+    power:2.8, critBonus:30, fx:{stackConsume:{type:'draw',perPower:.45,max:3}}, desc:'280%ダメージ。会心+30%。抜刀1につき威力+45%。'
+  },
+  mumei_okui:{
+    id:'mumei_okui', cls:'mumei', name:'奥義・無明天断', tier:3, col:0, req:['mumei_setsuna','mumei_seijaku'], sp:10, type:'active', ki:42,
+    power:4.4, ignoreDef:45, fx:{stackConsume:{type:'draw',perPower:.65,max:3,required:true}}, desc:'440%ダメージ。防御45%無視。抜刀必須、1につき威力+65%。'
+  },
+
+  souten_ranbu:{
+    id:'souten_ranbu', cls:'souten', name:'双天乱舞', tier:1, col:0, req:[], sp:4, type:'active', ki:14,
+    power:.8, hits:4, fx:{stackGain:{type:'combo',amount:2}}, desc:'80%×4回攻撃。連撃+2。'
+  },
+  souten_kasumi:{
+    id:'souten_kasumi', cls:'souten', name:'霞渡り', tier:1, col:1, req:[], sp:4, type:'passive',
+    passive:{dodge:12,atkPct:5}, desc:'回避+12%、攻撃+5%。'
+  },
+  souten_mugen:{
+    id:'souten_mugen', cls:'souten', name:'無限連環', tier:2, col:0, req:['souten_ranbu'], sp:6, type:'active', ki:26,
+    power:.9, hits:5, fx:{stackConsume:{type:'combo',perPower:.10,max:5}}, desc:'90%×5回。連撃1につき各撃威力+10%。'
+  },
+  souten_okui:{
+    id:'souten_okui', cls:'souten', name:'奥義・双天星葬', tier:3, col:0, req:['souten_mugen','souten_kasumi'], sp:10, type:'active', ki:40,
+    power:1.0, hits:6, fx:{stackConsume:{type:'combo',perPower:.12,max:5}}, desc:'100%×6回。連撃1につき各撃威力+12%。'
+  },
+
+  hajou_funsei:{
+    id:'hajou_funsei', cls:'hajou', name:'粉城撃', tier:1, col:0, req:[], sp:4, type:'active', ki:16,
+    power:2.0, fx:{enemyDefDown:20,stackGain:{type:'destroy',amount:1}}, desc:'200%ダメージ。敵防御-20%。破壊+1。'
+  },
+  hajou_kyotai:{
+    id:'hajou_kyotai', cls:'hajou', name:'金剛巨体', tier:1, col:1, req:[], sp:4, type:'passive',
+    passive:{hpPct:15,defPct:10}, desc:'最大HP+15%、防御+10%。'
+  },
+  hajou_dangan:{
+    id:'hajou_dangan', cls:'hajou', name:'断岳衝', tier:2, col:0, req:['hajou_funsei'], sp:6, type:'active', ki:28,
+    power:3.2, ignoreDef:25, fx:{stackConsume:{type:'destroy',perPower:.45,max:3},stunChance:30}, desc:'320%ダメージ。防御25%無視。破壊1につき+45%、30%で怯み。'
+  },
+  hajou_okui:{
+    id:'hajou_okui', cls:'hajou', name:'奥義・天地破城', tier:3, col:0, req:['hajou_dangan','hajou_kyotai'], sp:10, type:'active', ki:48,
+    power:5.0, ignoreDef:35, fx:{stackConsume:{type:'destroy',perPower:.60,max:3}}, desc:'500%ダメージ。防御35%無視。破壊1につき+60%。'
+  },
+
+  madou_rengoku:{
+    id:'madou_rengoku', cls:'madou', name:'煉獄魔刃', tier:1, col:0, req:[], sp:4, type:'active', ki:16,
+    power:1.8, fx:{burn:true,stackGain:{type:'mana',amount:2}}, desc:'180%ダメージ。炎上。魔力+2。'
+  },
+  madou_shinzui:{
+    id:'madou_shinzui', cls:'madou', name:'魔導の真髄', tier:1, col:1, req:[], sp:4, type:'passive',
+    passive:{skillPct:18,kiMax:15}, desc:'スキル威力+18%、最大気力+15。'
+  },
+  madou_zerai:{
+    id:'madou_zerai', cls:'madou', name:'零雷魔剣', tier:2, col:0, req:['madou_rengoku'], sp:6, type:'active', ki:28,
+    power:2.8, critBonus:20, fx:{freeze:true,stackConsume:{type:'mana',perPower:.18,max:5}}, desc:'280%ダメージ。会心+20%、凍結。魔力1につき+18%。'
+  },
+  madou_okui:{
+    id:'madou_okui', cls:'madou', name:'奥義・万象魔断', tier:3, col:0, req:['madou_zerai','madou_shinzui'], sp:10, type:'active', ki:46,
+    power:4.2, healDamage:25, fx:{stackConsume:{type:'mana',perPower:.28,max:5},enemyDefDown:25}, desc:'420%ダメージ。25%吸収、防御-25%。魔力1につき+28%。'
+  },
+
+  seigo_seiheki:{
+    id:'seigo_seiheki', cls:'seigo', name:'神聖城壁', tier:1, col:0, req:[], sp:4, type:'active', ki:16,
+    fx:{shieldPower:2.2,stackGain:{type:'guard',amount:2}}, desc:'強大なシールドを展開。守護+2。'
+  },
+  seigo_furaku:{
+    id:'seigo_furaku', cls:'seigo', name:'不落の誓約', tier:1, col:1, req:[], sp:4, type:'passive',
+    passive:{hpPct:18,defPct:15,counter:10}, desc:'最大HP+18%、防御+15%、反撃+10%。'
+  },
+  seigo_shinpan:{
+    id:'seigo_shinpan', cls:'seigo', name:'王盾審判', tier:2, col:0, req:['seigo_seiheki'], sp:6, type:'active', ki:26,
+    power:2.2, ignoreDef:20, fx:{stackConsume:{type:'guard',perPower:.30,max:5}}, desc:'220%ダメージ。防御20%無視。守護1につき+30%。'
+  },
+  seigo_okui:{
+    id:'seigo_okui', cls:'seigo', name:'奥義・永久聖域', tier:3, col:0, req:['seigo_shinpan','seigo_furaku'], sp:10, type:'active', ki:44,
+    fx:{shieldPower:3.2,healMax:35,selfDef:60,selfTurns:3,dodgeNext:true,stackGain:{type:'guard',amount:2}}, desc:'大シールド、HP35%回復、3ターン防御+60%、次撃を確実に回避。'
+  },
+
+  meiju_goketsu:{
+    id:'meiju_goketsu', cls:'meiju', name:'獄血の刃', tier:1, col:0, req:[], sp:4, type:'active', hpCost:10,
+    power:1.9, healDamage:50, fx:{stackGain:{type:'blood',amount:2}}, desc:'HP10%消費。190%ダメージ、50%吸収。呪血+2。'
+  },
+  meiju_fushi:{
+    id:'meiju_fushi', cls:'meiju', name:'不死の呪印', tier:1, col:1, req:[], sp:4, type:'passive',
+    passive:{lifesteal:10,atkPct:10}, desc:'吸血+10%、攻撃+10%。'
+  },
+  meiju_meikai:{
+    id:'meiju_meikai', cls:'meiju', name:'冥界断ち', tier:2, col:0, req:['meiju_goketsu'], sp:6, type:'active', hpCost:18,
+    power:3.4, fx:{curse:true,bleed:true,stackConsume:{type:'blood',perPower:.35,max:5}}, desc:'HP18%消費。340%ダメージ。呪い・出血、呪血1につき+35%。'
+  },
+  meiju_okui:{
+    id:'meiju_okui', cls:'meiju', name:'奥義・冥府血葬', tier:3, col:0, req:['meiju_meikai','meiju_fushi'], sp:10, type:'active', hpCost:28,
+    power:5.2, healDamage:40, fx:{stackConsume:{type:'blood',perPower:.50,max:5}}, desc:'HP28%消費。520%ダメージ、40%吸収。呪血1につき+50%。'
   }
 };
 
@@ -617,7 +763,7 @@ const STORY = [
   'この道には上限がない。レベルも、ステータスも、装備も、スキルも、どこまでも伸びていく。',
   'だが、数字だけでは達人にはなれない。どの剣を選び、何を捨て、どんな癖を自分の形にするか。',
   '居合は一瞬を極め、二刀は流れを極め、大剣は破壊を極める。魔剣は理を外し、聖盾は守りを極め、呪剣は代価を払う。',
-  'そして剣聖は、それらの先にある「心眼」へ至る。これは、あなた自身の剣を探す物語だ。',
+  '選んだ道の先には、それぞれ異なる頂がある。剣士を貫けば剣聖へ、六つの上級職はそれぞれの最終職へ至る。',
   'さあ、剣を握れ。剣の達人への道は、いつだって最初の一歩から始まる。'
 ];
 
@@ -625,7 +771,8 @@ const TUTORIAL = [
   {h:'基本', p:'戦闘で経験値とゴールドを得て、レベルアップでステータスポイントとSPを獲得します。'},
   {h:'ステータス', p:'10種類のステータスを自由に振れます。力・技・素早さ・体力・精神力・守備・幸運・気力・集中・威圧。'},
   {h:'スキルツリー', p:'スキルは視覚的なツリーから習得します。前提スキルやSPを考慮して、自分だけの構成を作ってください。'},
-  {h:'職業の個性', p:'職業ごとに専用ゲージがあります。居合は抜刀、二刀は連撃、大剣は破壊、魔剣は魔力、聖盾は守護値、呪剣は呪血、剣聖は心眼。'},
+  {h:'職業の個性', p:'最初に選んだ上級職の系統は固定され、Lv35で系統ごとの最終職へ進みます。剣士を貫いた場合のみ剣聖を選べます。'},
+  {h:'スキル継承', p:'現在職のスキルはすべて使用できます。他職スキルはアクティブ2個・パッシブ2個まで継承でき、他職の奥義は継承できません。'},
   {h:'装備', p:'敵が装備を落とします。インベントリから装着し、不要なら売ってゴールドに。'},
   {h:'PVP', p:'ランキングはサーバー想定のモックAPIで動きます。実サーバーに移す場合は MockServer を fetch に置き換えます。'}
 ];
@@ -641,7 +788,7 @@ const SERVER_DESIGN = [
 
 function defaultState(){
   return {
-    version:1,
+    version:2,
     screen:'title',
     name:'',
     gender:'その他',
@@ -652,6 +799,7 @@ function defaultState(){
     gold:250,
     stats:{str:5,tec:5,agi:5,vit:5,men:5,def:5,luk:5,ki:5,foc:5,pre:5},
     classId:'kenshi',
+    classPath:null,
     learned:[],
     inventory:[],
     equip:{weapon:null, armor:null, accessory:null},
@@ -660,7 +808,7 @@ function defaultState(){
     losses:0,
     storyStep:0,
     tutorialSeen:false,
-    ui:{skillClass:'kenshi', selectedSkill:null},
+    ui:{skillClass:'kenshi', selectedSkill:null, inheritActive:[], inheritPassive:[]},
     battle:null,
     rankingLoading:false,
     rankingData:null,
@@ -696,16 +844,28 @@ function hasSkill(id){ return Array.isArray(S.learned) && S.learned.includes(id)
 function classResource(cls){
   return {
     iai:'draw', nitou:'combo', daitou:'destroy', magi:'mana',
-    seiken:'guard', juken:'blood', kensei:'mind'
+    seiken:'guard', juken:'blood', kensei:'mind',
+    mumei:'draw', souten:'combo', hajou:'destroy', madou:'mana',
+    seigo:'guard', meiju:'blood'
   }[cls] || null;
 }
+function isFinalClass(id){ return Object.prototype.hasOwnProperty.call(FINAL_CLASS_FROM, id); }
 function canChangeClass(id){
   const c = CLASSES[id];
   if(!c) return false;
   if(S.classId === id) return false;
   if(S.level < c.reqLevel) return false;
-  if(id === 'kensei' && S.classId === 'kenshi') return false;
+  if(ADVANCED_CLASSES.includes(id) && S.classPath && S.classPath !== id) return false;
+  if(id === 'kensei' && (S.classId !== 'kenshi' || S.classPath)) return false;
+  if(isFinalClass(id) && id !== 'kensei' && (S.classId !== FINAL_CLASS_FROM[id] || S.classPath !== FINAL_CLASS_FROM[id])) return false;
   return true;
+}
+function usableSkillIds(type){
+  const inherited = type === 'active' ? S.ui.inheritActive : S.ui.inheritPassive;
+  return S.learned.filter(id => {
+    const sk = SKILLS[id];
+    return sk && sk.type === type && (sk.cls === S.classId || inherited.includes(id));
+  });
 }
 function canLearnSkill(sk){
   if(!sk) return false;
@@ -732,8 +892,17 @@ function load(){
     S.stats = Object.assign({}, def.stats, d.stats || {});
     S.equip = Object.assign({}, def.equip, d.equip || {});
     S.ui = Object.assign({}, def.ui, d.ui || {});
+    if(!Array.isArray(S.ui.inheritActive)) S.ui.inheritActive = [];
+    if(!Array.isArray(S.ui.inheritPassive)) S.ui.inheritPassive = [];
+    S.ui.inheritActive = S.ui.inheritActive.filter(id => SKILLS[id] && SKILLS[id].type === 'active').slice(0,2);
+    S.ui.inheritPassive = S.ui.inheritPassive.filter(id => SKILLS[id] && SKILLS[id].type === 'passive').slice(0,2);
     if(!Array.isArray(S.learned)) S.learned = [];
     if(!Array.isArray(S.inventory)) S.inventory = [];
+    if(!S.classPath){
+      if(ADVANCED_CLASSES.includes(S.classId)) S.classPath = S.classId;
+      const parent = FINAL_CLASS_FROM[S.classId];
+      if(parent && parent !== 'kenshi') S.classPath = parent;
+    }
     S.battle = null;
     S.rankingLoading = false;
     if(S.screen === 'battle') S.screen = 'adventure';
@@ -822,7 +991,7 @@ function getPassiveBonuses(){
     skillPct:0, kiMax:0, lifesteal:0, counter:0, pvp:0,
     regen:0, expBonus:0, goldBonus:0
   };
-  for(const id of S.learned){
+  for(const id of usableSkillIds('passive')){
     const sk = SKILLS[id];
     if(!sk || !sk.passive) continue;
     for(const key of Object.keys(sk.passive)){
@@ -1123,7 +1292,7 @@ function basicAttack(d){
 function useSkillById(id, d){
   const b = S.battle;
   const sk = SKILLS[id];
-  if(!sk || !hasSkill(id) || sk.type !== 'active') return false;
+  if(!sk || !hasSkill(id) || sk.type !== 'active' || !usableSkillIds('active').includes(id)) return false;
   if(!skillUsable(sk)){
     blog('そのスキルは使えない。');
     return false;
@@ -1602,9 +1771,31 @@ const G = {
     save();
     render();
   },
+  toggleInheritSkill(id){
+    const sk = SKILLS[id];
+    if(!sk || !hasSkill(id) || sk.cls === S.classId || sk.name.startsWith('奥義・')) return;
+    const key = sk.type === 'active' ? 'inheritActive' : 'inheritPassive';
+    const list = S.ui[key];
+    const idx = list.indexOf(id);
+    if(idx >= 0){
+      list.splice(idx, 1);
+      S.message = `${sk.name}を継承枠から外した。`;
+    }else if(list.length < 2){
+      list.push(id);
+      S.message = `${sk.name}を継承枠に装備した！`;
+    }else{
+      S.message = `${sk.type === 'active' ? 'アクティブ' : 'パッシブ'}継承枠は2個まで。`;
+    }
+    save();
+    render();
+  },
   changeClass(id){
     if(!canChangeClass(id)) return;
+    if(ADVANCED_CLASSES.includes(id) && !S.classPath && !confirm(`${CLASSES[id].name}の系統を選びます。以後、別系統の上級職・最終職には進めません。よろしいですか？`)) return;
+    if(ADVANCED_CLASSES.includes(id) && !S.classPath) S.classPath = id;
     S.classId = id;
+    S.ui.inheritActive = S.ui.inheritActive.filter(skillId => SKILLS[skillId] && SKILLS[skillId].cls !== id).slice(0,2);
+    S.ui.inheritPassive = S.ui.inheritPassive.filter(skillId => SKILLS[skillId] && SKILLS[skillId].cls !== id).slice(0,2);
     S.ui.skillClass = id;
     S.ui.selectedSkill = null;
     S.message = `${CLASSES[id].name}に転職した！`;
@@ -1722,8 +1913,8 @@ window.G = G;
 function titleView(){
   return `
   <div class="panel center">
-    <h1 class="title">剣の達人への道 強化版</h1>
-    <p class="subtitle">視覚スキルツリー／装備ドロップ／職業固有ゲージ／モックPVPランキング</p>
+    <h1 class="title">剣の達人への道 最終職分岐版</h1>
+    <p class="subtitle">14職業／最終職分岐／スキル継承枠／装備ドロップ／モックPVP</p>
     <div class="flex" style="justify-content:center;margin-top:14px">
       <button class="primary" onclick="G.toCreate()">新しく始める</button>
       ${S.name ? `<button onclick="G.nav('adventure')">続きから（${esc(S.name)}）</button>` : ''}
@@ -1904,6 +2095,12 @@ function skillsView(){
   <div class="panel">
     <h2>スキルツリー</h2>
     <p class="small">SP：<b class="gold">${fmt(S.sp)}</b> / 現在の職業：${CLASSES[S.classId].name}</p>
+    <div class="card">
+      <b>他職スキル継承枠</b>
+      <div class="small">アクティブ ${S.ui.inheritActive.length}/2：${S.ui.inheritActive.map(id => SKILLS[id].name).join('、') || 'なし'}</div>
+      <div class="small">パッシブ ${S.ui.inheritPassive.length}/2：${S.ui.inheritPassive.map(id => SKILLS[id].name).join('、') || 'なし'}</div>
+      <div class="small">他職の奥義は継承できません。現在職のスキルは枠を使わず使用できます。</div>
+    </div>
     <div class="flex">
       ${CLASS_ORDER.map(id => `<button class="${cls === id ? 'primary' : ''}" onclick="G.setSkillClass('${id}')">${CLASSES[id].name}</button>`).join('')}
     </div>
@@ -1922,7 +2119,10 @@ function skillsView(){
         <div>${selected.desc}</div>
         <div style="margin-top:8px">
           ${hasSkill(selected.id)
-            ? '<span class="good">習得済み</span>'
+            ? `<span class="good">習得済み</span>
+               ${S.classId !== selected.cls && !selected.name.startsWith('奥義・')
+                 ? `<button onclick="G.toggleInheritSkill('${selected.id}')">${(selected.type === 'active' ? S.ui.inheritActive : S.ui.inheritPassive).includes(selected.id) ? '継承枠から外す' : '継承枠に装備'}</button>`
+                 : ''}`
             : `<button onclick="G.learnSkill('${selected.id}')" ${canLearnSkill(selected) ? '' : 'disabled'}>習得する</button>`}
           ${S.classId !== selected.cls ? '<span class="pill warn">この職業中は習得不可</span>' : ''}
         </div>
@@ -1979,14 +2179,14 @@ function classView(){
   return `
   <div class="panel">
     <h2>職業</h2>
-    <p class="small">Lv10で上級職、Lv35で剣聖へ。転職しても習得済みスキルは消えません。</p>
+    <p class="small">Lv35で各系統の最終職へ。剣聖は剣士を貫いた者だけの最終職です。習得済みスキルは消えませんが、他職スキルは継承枠に装備したものだけ有効です。</p>
     <div class="grid wide">
       ${CLASS_ORDER.map(id => {
         const c = CLASSES[id];
         const current = S.classId === id;
         const can = canChangeClass(id);
-        const req = id === 'kensei'
-          ? `Lv${fmt(c.reqLevel)}以上、かつ上級職から`
+        const req = isFinalClass(id)
+          ? `Lv${fmt(c.reqLevel)}以上、${CLASSES[FINAL_CLASS_FROM[id]].name}から`
           : `Lv${fmt(c.reqLevel)}以上`;
 
         return `
@@ -2094,7 +2294,7 @@ function battleView(){
   const kiPct = Math.max(0, Math.floor((b.playerKI / b.maxKI) * 100));
   const ehpPct = Math.max(0, Math.floor((b.enemy.hp / b.enemy.maxHP) * 100));
 
-  const activeSkills = S.learned
+  const activeSkills = usableSkillIds('active')
     .map(id => SKILLS[id])
     .filter(sk => sk && sk.type === 'active')
     .sort((a,b) => (a.tier - b.tier) || ((a.ki || 0) - (b.ki || 0)));
