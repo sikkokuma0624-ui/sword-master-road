@@ -854,6 +854,7 @@ const STORY = [
 
 const TUTORIAL = [
   {h:'基本', p:'戦闘で経験値とゴールドを得て、レベルアップでステータスポイントとSPを獲得します。'},
+  {h:'スタミナ', p:'通常戦5、主10、無限剣塔8を消費。3分で1自動回復し、1日5回まで広告または瞑想で30回復できます。師匠試練とPVPは消費しません。'},
   {h:'ステータス', p:'10種類のステータスを自由に振れます。力・技・素早さ・体力・精神力・守備・幸運・気力・集中・威圧。'},
   {h:'スキルツリー', p:'スキルは視覚的なツリーから習得します。前提スキルやSPを考慮して、自分だけの構成を作ってください。'},
   {h:'職業の個性', p:'最初に選んだ上級職の系統は固定され、Lv35で系統ごとの最終職へ進みます。剣士を貫いた場合のみ剣聖を選べます。'},
@@ -880,7 +881,7 @@ const SERVER_DESIGN = [
 
 function defaultState(){
   return {
-    version:7,
+    version:8,
     screen:'title',
     name:'',
     gender:'その他',
@@ -908,10 +909,11 @@ function defaultState(){
     ui:{
       skillClass:'kenshi', selectedSkill:null, inheritActive:[], inheritPassive:[],
       activeLoadout:[], passiveLoadout:[], ultimateLoadout:null, secretLoadout:null,
-      buildPresets:[null,null,null], rankingMode:'pvp'
+      buildPresets:[null,null,null,null,null], rankingMode:'pvp',legalPage:'terms'
     },
     social:{mentor:null,disciples:[],changeAvailableAt:0,bondPoints:0,mentorBonds:{}},
     online:{schemaVersion:1,userId:null,seasonId:SEASON_ID,defenseSnapshot:null,lastSyncAt:null},
+    monetization:{testMode:true,stamina:100,lastStaminaAt:Date.now(),rewardUses:0,rewardDate:'',adFree:false,passUntil:0,passDailyDate:''},
     battle:null,
     rankingLoading:false,
     rankingData:null,
@@ -933,6 +935,31 @@ function chance(p){ return Math.random() * 100 < p; }
 function rand(n){ return Math.floor(Math.random() * (n + 1)); }
 function choice(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
 function uid(){ return 'id' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function japanDateKey(ms=Date.now()){
+  try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(ms));}
+  catch(e){return new Date(ms+9*60*60*1000).toISOString().slice(0,10);}
+}
+function passActive(){ return (S.monetization.passUntil||0)>Date.now(); }
+function staminaMax(){ return passActive()?150:100; }
+function staminaOverflowMax(){ return staminaMax()+30; }
+function inventoryLimit(){ return passActive()?100:60; }
+function presetLimit(){ return passActive()?5:3; }
+function syncStamina(){
+  const m=S.monetization,now=Date.now(),today=japanDateKey(now);
+  if(m.rewardDate!==today){m.rewardDate=today;m.rewardUses=0;}
+  const max=staminaMax();
+  if(m.stamina<max){
+    const ticks=Math.floor((now-(m.lastStaminaAt||now))/180000);
+    if(ticks>0){m.stamina=Math.min(max,m.stamina+ticks);m.lastStaminaAt=(m.lastStaminaAt||now)+ticks*180000;}
+  }else m.lastStaminaAt=now;
+}
+function gainStamina(amount){syncStamina();S.monetization.stamina=Math.min(staminaOverflowMax(),S.monetization.stamina+Math.max(0,amount));}
+function spendStamina(amount){syncStamina();if(S.monetization.stamina<amount){S.message=`スタミナが不足しています（必要${amount}）。`;return false;}S.monetization.stamina-=amount;return true;}
+function nextStaminaText(){
+  syncStamina();if(S.monetization.stamina>=staminaMax())return '回復停止中';
+  const remain=Math.max(0,180000-(Date.now()-(S.monetization.lastStaminaAt||Date.now())));
+  return `次の回復まで${Math.ceil(remain/60000)}分`;
+}
 function weightedSwordStat(){
   const pool = [];
   for(const key of STAT_KEYS){
@@ -1236,6 +1263,7 @@ function canLearnSkill(sk){
 }
 function save(){
   try{
+    syncStamina();
     if(S.name){
       if(!S.online.userId) S.online.userId='local_'+uid();
       S.online.seasonId=SEASON_ID;
@@ -1261,6 +1289,7 @@ function load(){
     S.social = Object.assign({}, def.social, d.social || {});
     S.social.mentorBonds=Object.assign({},d.social&&d.social.mentorBonds||{});
     S.online = Object.assign({}, def.online, d.online || {});
+    S.monetization=Object.assign({},def.monetization,d.monetization||{});
     if(!Array.isArray(S.clearedAreas)) S.clearedAreas=[];
     S.areaWins=Object.assign({},d.areaWins||{});
     S.skillMastery=Object.assign({},d.skillMastery||{});
@@ -1275,8 +1304,8 @@ function load(){
     for(const item of [...S.inventory,...Object.values(S.equip).filter(Boolean)]) if(item.enhance==null) item.enhance=0;
     if(!Array.isArray(S.ui.activeLoadout)) S.ui.activeLoadout=[];
     if(!Array.isArray(S.ui.passiveLoadout)) S.ui.passiveLoadout=[];
-    if(!Array.isArray(S.ui.buildPresets)) S.ui.buildPresets=[null,null,null];
-    S.ui.buildPresets=S.ui.buildPresets.slice(0,3); while(S.ui.buildPresets.length<3) S.ui.buildPresets.push(null);
+    if(!Array.isArray(S.ui.buildPresets)) S.ui.buildPresets=[null,null,null,null,null];
+    S.ui.buildPresets=S.ui.buildPresets.slice(0,5); while(S.ui.buildPresets.length<5) S.ui.buildPresets.push(null);
     S.ui.activeLoadout=S.ui.activeLoadout.filter(id=>SKILLS[id]&&hasSkill(id)&&!isUltimateSkill(SKILLS[id])).slice(0,4);
     S.ui.passiveLoadout=S.ui.passiveLoadout.filter(id=>SKILLS[id]&&hasSkill(id)&&SKILLS[id].type==='passive').slice(0,4);
     if(!S.ui.ultimateLoadout || !SKILLS[S.ui.ultimateLoadout] || !hasSkill(S.ui.ultimateLoadout)) S.ui.ultimateLoadout=null;
@@ -1293,6 +1322,7 @@ function load(){
     S.rankingLoading = false;
     S.rankingData = null;
     if(S.screen === 'battle') S.screen = 'adventure';
+    syncStamina();
     return true;
   }catch(e){
     return false;
@@ -2219,7 +2249,7 @@ function victory(){
   }
   if(b.enemy.fixedBoss){
     const firstClear=!b.enemy.replay;
-    if((firstClear||chance(20)) && S.inventory.length<60){
+    if((firstClear||chance(20)) && S.inventory.length<inventoryLimit()){
       const relic=generateBossRelic(b.enemy.areaId,b.enemy.level);
       S.inventory.push(relic);
       blog(`${firstClear?'初回制覇':'再戦'}報酬――固有装備「${relic.name}」を獲得！`,'result');
@@ -2251,7 +2281,7 @@ function victory(){
 
   const dropBase = b.isPvp ? 0.25 : Math.min(.98,(b.enemy.dropRate||.35) + S.stats.luk*0.002 + (b.enemy.boss ? 0.20 : 0));
   if(!b.enemy.mentorTrial && Math.random() < dropBase){
-    if(S.inventory.length < 60){
+    if(S.inventory.length < inventoryLimit()){
       const item = generateItem(b.enemy.level, b.enemy.boss ? (chance(30) ? 'epic' : 'rare') : null, b.enemy.boss);
       S.inventory.push(item);
       blog(`ドロップ！ [${RARITIES[item.rarity].name}] ${item.name}`);
@@ -2378,6 +2408,35 @@ const G = {
     save();
     render();
   },
+  watchRewardAd(){
+    syncStamina(); const m=S.monetization;
+    if(m.rewardUses>=5){S.message='本日のスタミナ回復は5回使用済みです。';render();return;}
+    const skip=m.adFree||passActive();
+    if(!skip&&!confirm('【テスト広告】実広告はまだ配信されません。視聴完了扱いにしてスタミナ30を受け取りますか？'))return;
+    m.rewardUses++;gainStamina(30);
+    S.message=`${skip?'瞑想':'テスト広告完了'}でスタミナ+30（本日${m.rewardUses}/5回）。`;save();render();
+  },
+  testBuyAdFree(){
+    if(!S.monetization.testMode)return;
+    if(!confirm('テスト用です。実際の請求は発生しません。広告なし買い切り500円を購入済みにしますか？'))return;
+    S.monetization.adFree=true;S.message='テスト購入：永久広告なしを有効化しました。';save();render();
+  },
+  testBuyPass(){
+    if(!S.monetization.testMode)return;
+    if(!confirm('テスト用です。実際の請求は発生しません。月額パス500円を30日間有効にしますか？'))return;
+    S.monetization.passUntil=Math.max(Date.now(),S.monetization.passUntil||0)+30*24*60*60*1000;
+    S.message='テスト購入：月額パスを30日間有効化しました。';save();render();
+  },
+  claimPassDaily(){
+    if(!passActive())return;const today=japanDateKey();
+    if(S.monetization.passDailyDate===today){S.message='本日のパス回復は受取済みです。';render();return;}
+    S.monetization.passDailyDate=today;gainStamina(50);S.message='月額パス特典：スタミナ+50。';save();render();
+  },
+  resetTestPurchases(){
+    if(!S.monetization.testMode||!confirm('テスト購入状態をすべて解除しますか？'))return;
+    S.monetization.adFree=false;S.monetization.passUntil=0;S.monetization.passDailyDate='';S.message='テスト購入状態を解除しました。';save();render();
+  },
+  openLegal(type){S.ui.legalPage=type;S.screen='legal';save();render();},
   addStat(key, amount){
     if(!STAT_KEYS.includes(key) || S.statPoints < amount) return;
     S.statPoints -= amount;
@@ -2417,7 +2476,7 @@ const G = {
     save(); render();
   },
   saveBuildPreset(index){
-    if(index<0||index>2) return;
+    if(index<0||index>=presetLimit()) return;
     S.ui.buildPresets[index]={name:`構成${index+1}`,classId:S.classId,active:[...S.ui.activeLoadout],passive:[...S.ui.passiveLoadout],ultimate:S.ui.ultimateLoadout,secret:S.ui.secretLoadout,inheritActive:[...S.ui.inheritActive],inheritPassive:[...S.ui.inheritPassive]};
     S.message=`ビルド構成${index+1}へ現在のスキル構成を保存した。`; save(); render();
   },
@@ -2434,7 +2493,7 @@ const G = {
     S.message=`ビルド構成${index+1}へ切り替えた。`; save(); render();
   },
   clearBuildPreset(index){
-    if(index<0||index>2) return;
+    if(index<0||index>=presetLimit()) return;
     S.ui.buildPresets[index]=null; S.message=`ビルド構成${index+1}を削除した。`; save(); render();
   },
   takeDisciple(id){
@@ -2540,7 +2599,7 @@ const G = {
   unequipItem(slot){
     const item = S.equip[slot];
     if(!item) return;
-    if(S.inventory.length >= 60){
+    if(S.inventory.length >= inventoryLimit()){
       S.message = 'インベントリがいっぱいで外せない。';
     }else{
       S.inventory.push(item);
@@ -2579,6 +2638,7 @@ const G = {
   },
   startBattle(areaId){
     if(!areaUnlocked(areaId)) return;
+    if(!spendStamina(5)){render();return;} save();
     const enemy = makeEnemy(areaId);
     initBattle(enemy, false, null);
     S.screen = 'battle';
@@ -2586,6 +2646,7 @@ const G = {
   },
   startBoss(areaId){
     if(!bossUnlocked(areaId)) return;
+    if(!spendStamina(10)){render();return;} save();
     const enemy=makeAreaBoss(areaId);
     enemy.replay=S.clearedAreas.includes(areaId);
     initBattle(enemy,false,null);
@@ -2594,6 +2655,7 @@ const G = {
   },
   startTower(){
     if(S.clearedAreas.length<6) return;
+    if(!spendStamina(8)){render();return;} save();
     initBattle(makeTowerEnemy(),false,null);
     S.screen='battle'; render();
   },
@@ -2693,7 +2755,7 @@ function titleView(){
   return `
   <div class="panel center">
     <h1 class="title">剣の達人への道 無限修練版</h1>
-    <p class="subtitle">段位／予兆／無限剣塔／熟練度／107スキル／ビルドプリセット／師弟秘伝</p>
+    <p class="subtitle">段位／予兆／無限剣塔／107スキル／師弟秘伝／スタミナ・課金テスト</p>
     <div class="flex" style="justify-content:center;margin-top:14px">
       <button class="primary" onclick="G.toCreate()">新しく始める</button>
       ${S.name ? `<button onclick="G.nav('adventure')">続きから（${esc(S.name)}）</button>` : ''}
@@ -2732,6 +2794,7 @@ function introView(){
   </div>`;
 }
 function headerView(){
+  syncStamina();
   const d = getDerived();
   return `
   <div class="header">
@@ -2740,9 +2803,11 @@ function headerView(){
       <span class="pill">${CLASSES[S.classId].name}</span>
       <span class="pill">Lv ${fmt(S.level)}</span>
       <span class="pill good">${swordRankName()}</span>
+      ${passActive()?'<span class="pill gold">修練パス・求道者</span>':''}
       <span class="pill">戦闘力 ${fmt(getCombatPower())}</span>
       <span class="pill gold">Gold ${fmt(S.gold)}</span>
-      <span class="pill">Rate ${fmt(S.rating)}</span>
+      <span class="pill warn">スタミナ ${fmt(S.monetization.stamina)}/${fmt(staminaMax())}</span>
+      <span class="pill">PVPレート ${fmt(S.rating)}</span>
     </div>
     <div class="small">
       HP ${fmt(d.maxHP)} / KI ${fmt(d.maxKI)} / 攻 ${fmt(d.attack)} / 防 ${fmt(d.defense)} / 速 ${fmt(d.speed)}
@@ -2757,6 +2822,7 @@ function navView(){
     ['equip','装備'],
     ['class','職業'],
     ['social','師弟'],
+    ['shop','回復・パス'],
     ['ranking','PVP'],
     ['story','物語'],
     ['settings','設定']
@@ -2785,15 +2851,15 @@ function adventureView(){
           <div class="small">目安Lv ${fmt(Math.max(1, Math.floor(S.level*a.mult)))} / ドロップ傾向 ${Math.round(a.dropRate*100)}%</div>
           <div class="small">出現：${a.enemies.slice(0,3).join('、')} ほか</div>
           <div class="small">主への挑戦条件：通常戦3勝（${Math.min(3,wins)}/3）</div>
-          <div class="flex"><button onclick="G.startBattle('${a.id}')" ${unlocked?'':'disabled'}>修練へ出撃</button>
-          <button class="primary" onclick="G.startBoss('${a.id}')" ${bossUnlocked(a.id)?'':'disabled'}>${cleared?'主と再戦':'主に挑む'}</button></div>
+          <div class="flex"><button onclick="G.startBattle('${a.id}')" ${unlocked?'':'disabled'}>修練へ出撃（ST5）</button>
+          <button class="primary" onclick="G.startBoss('${a.id}')" ${bossUnlocked(a.id)?'':'disabled'}>${cleared?'主と再戦':'主に挑む'}（ST10）</button></div>
         </div>`;
       }).join('')}
     </div>
     <div class="card" style="margin-top:12px;${S.clearedAreas.length<6?'opacity:.5':''}">
       <div class="flex"><b>無限剣塔</b><span class="pill warn">現在 第${fmt(S.tower.floor)}階</span><span class="pill">最高 ${fmt(S.tower.best)}階</span></div>
       <div class="small">剣極到達後の無限修練。階層ごとに敵能力と特殊補正が上昇し、5階ごとに剣主が待つ。</div>
-      <div class="flex"><button class="primary" onclick="G.startTower()" ${S.clearedAreas.length>=6?'':'disabled'}>第${fmt(S.tower.floor)}階へ挑戦</button><button onclick="G.resetTower()" ${S.clearedAreas.length>=6?'':'disabled'}>第1階から</button></div>
+      <div class="flex"><button class="primary" onclick="G.startTower()" ${S.clearedAreas.length>=6?'':'disabled'}>第${fmt(S.tower.floor)}階へ挑戦（ST8）</button><button onclick="G.resetTower()" ${S.clearedAreas.length>=6?'':'disabled'}>第1階から</button></div>
     </div>
   </div>`;
 }
@@ -2900,7 +2966,7 @@ function skillsView(){
       ${synergies.map(s=>`<div class="small good">${s.name}：${s.desc}</div>`).join('')}
     </div>
     <div class="card"><b>ビルドプリセット（3枠）</b><div class="small">現在のアクティブ・パッシブ・奥義・秘伝・継承枠をまとめて保存します。</div>
-      <div class="grid">${S.ui.buildPresets.map((p,i)=>`<div class="card"><b>構成${i+1}</b><div class="small">${p?`${CLASSES[p.classId]?CLASSES[p.classId].name:p.classId}／技${(p.active||[]).length}・常時${(p.passive||[]).length}`:'未保存'}</div><div class="flex"><button onclick="G.saveBuildPreset(${i})">上書き保存</button><button onclick="G.loadBuildPreset(${i})" ${p?'':'disabled'}>切替</button><button onclick="G.clearBuildPreset(${i})" ${p?'':'disabled'}>削除</button></div></div>`).join('')}</div>
+      <div class="grid">${S.ui.buildPresets.map((p,i)=>{const unlocked=i<presetLimit();return `<div class="card" style="${unlocked?'':'opacity:.5'}"><b>構成${i+1}</b>${!unlocked?'<span class="pill warn">月額パス</span>':''}<div class="small">${p?`${CLASSES[p.classId]?CLASSES[p.classId].name:p.classId}／技${(p.active||[]).length}・常時${(p.passive||[]).length}`:'未保存'}</div><div class="flex"><button onclick="G.saveBuildPreset(${i})" ${unlocked?'':'disabled'}>上書き保存</button><button onclick="G.loadBuildPreset(${i})" ${p&&unlocked?'':'disabled'}>切替</button><button onclick="G.clearBuildPreset(${i})" ${p&&unlocked?'':'disabled'}>削除</button></div></div>`}).join('')}</div>
     </div>
     <div class="card">
       <b>他職スキル継承枠</b>
@@ -2950,7 +3016,7 @@ function equipView(){
   return `
   <div class="panel">
     <h2>装備とインベントリ</h2>
-    <p class="small">所持ゴールド：<b class="gold">${fmt(S.gold)}</b> / インベントリ ${S.inventory.length}/60</p>
+    <p class="small">所持ゴールド：<b class="gold">${fmt(S.gold)}</b> / インベントリ ${S.inventory.length}/${inventoryLimit()}</p>
 
     <div class="grid wide">
       ${slots.map(([slot,label]) => {
@@ -3104,6 +3170,56 @@ function storyView(){
     </div>
   </div>`;
 }
+function shopView(){
+  syncStamina();
+  const m=S.monetization,skip=m.adFree||passActive(),remain=Math.max(0,5-m.rewardUses);
+  return `<div class="panel"><h2>スタミナ回復・パス</h2>
+    <div class="card"><span class="pill warn">テストモード</span><div class="small">現在は実広告・実決済に接続していません。ボタンを押しても請求は発生しません。正式版ではサーバー検証後に切り替えます。</div></div>
+    <div class="card"><div class="flex"><b>スタミナ ${fmt(m.stamina)}/${fmt(staminaMax())}</b><span class="pill right">${nextStaminaText()}</span></div><div class="bar ki"><div style="width:${Math.min(100,m.stamina/staminaMax()*100)}%"></div></div><div class="small">3分で1自動回復。本日の回復 ${m.rewardUses}/5回。</div><button class="primary" onclick="G.watchRewardAd()" ${remain>0?'':'disabled'}>${skip?'瞑想で即時回復':'テスト広告を自分で視聴'}（+30／残り${remain}回）</button></div>
+    <div class="grid wide">
+      <div class="card"><b>永久広告なし</b><span class="pill gold">買い切り500円予定</span><div class="small">広告動画の代わりに「瞑想」で同じ回復を受け取れます。回復回数・総量は無課金と同じです。</div><div>${m.adFree?'<span class="pill good">テスト購入済み</span>':'<button onclick="G.testBuyAdFree()">テスト購入を有効化</button>'}</div></div>
+      <div class="card"><b>剣道修練パス</b><span class="pill gold">月額500円予定</span><div class="small">契約中は広告スキップ、上限150、毎日+50、インベントリ100、プリセット5枠、専用称号。戦闘能力への直接補正はありません。</div><div class="small">${passActive()?`有効期限：${new Date(m.passUntil).toLocaleDateString('ja-JP')}`:'現在無効'}</div>${passActive()?`<button onclick="G.claimPassDaily()" ${m.passDailyDate===japanDateKey()?'disabled':''}>本日のスタミナ+50</button>`:'<button onclick="G.testBuyPass()">30日間のテスト購入</button>'}</div>
+    </div>
+    <button class="danger" onclick="G.resetTestPurchases()">テスト購入状態を解除</button>
+    <div class="footerNote">正式版の購入前には、価格・更新周期・解約方法・提供時期・返品条件を最終確認画面に再表示します。</div>
+  </div>`;
+}
+function legalView(){
+  const page=S.ui.legalPage||'terms';
+  const nav=`<div class="flex"><button onclick="G.openLegal('terms')">利用規約</button><button onclick="G.openLegal('privacy')">プライバシー</button><button onclick="G.openLegal('commerce')">特商法表示</button><button onclick="G.openLegal('ads')">広告・課金方針</button><button onclick="G.openLegal('contact')">お問い合わせ</button></div>`;
+  let body='';
+  if(page==='terms') body=`<h2>利用規約（審査準備版）</h2><div class="small">制定予定日：2026年8月15日</div>
+    <h3>1. 適用</h3><p>本規約は「剣の達人への道」（以下「本サービス」）の利用条件を定めます。利用開始により本規約へ同意したものとします。</p>
+    <h3>2. アカウント・セーブ</h3><p>テスト版のデータは端末内に保存されます。利用者は書き出し機能でバックアップしてください。正式版ではログイン情報を第三者へ譲渡・共有できません。</p>
+    <h3>3. 禁止事項</h3><p>不正アクセス、データ改変、自動操作、脆弱性の悪用、他者への迷惑行為、ランキングの不正操作、サービス運営を妨害する行為を禁止します。</p>
+    <h3>4. 有料サービス</h3><p>買い切り・月額パスの価格、期間、特典、更新、解約条件は購入画面と特定商取引法表示に示します。現在はテストモードであり実際の請求は発生しません。</p>
+    <h3>5. 未成年者</h3><p>未成年者は保護者等の法定代理人の同意を得て有料サービスを利用してください。</p>
+    <h3>6. 変更・停止</h3><p>保守、障害、法令対応その他必要な場合に、本サービスの内容変更または提供停止を行うことがあります。重要な変更はゲーム内等で告知します。</p>
+    <h3>7. 免責・責任</h3><p>当方の故意または重過失による場合を除き、法令で認められる範囲で責任を制限します。消費者契約法その他の強行法規に反する免責は適用しません。</p>
+    <h3>8. 準拠法</h3><p>日本法を準拠法とします。紛争時はまず誠実に協議します。</p>`;
+  if(page==='privacy') body=`<h2>プライバシーポリシー（審査準備版）</h2><div class="small">現在のテスト版はゲームデータを端末内のlocalStorageへ保存し、実広告・実決済・外部送信を行いません。</div>
+    <h3>取得予定情報</h3><p>正式版では、ユーザーID、表示名、ゲーム進行、対戦記録、購入・契約状態、問い合わせ内容、IPアドレス、端末・ブラウザ情報、Cookieその他の識別子を取得する場合があります。決済カード情報は決済事業者が管理し、当方では保持しません。</p>
+    <h3>利用目的</h3><p>ゲーム提供、セーブ同期、本人確認、購入特典付与、ランキング、不正防止、障害調査、問い合わせ対応、利用状況分析、広告配信、法令対応のために利用します。</p>
+    <h3>第三者サービス</h3><p>正式版では広告配信事業者、決済事業者、ホスティング・分析事業者へ必要な情報が送信される場合があります。広告配信では第三者がCookie、IPアドレス等を利用することがあります。Googleによるデータ利用は「Googleのサービスを使用するサイトやアプリから収集した情報のGoogleによる使用」を確認してください。</p>
+    <h3>第三者提供・安全管理</h3><p>法令に基づく場合等を除き、本人の同意なく個人データを第三者へ提供しません。アクセス制御、暗号化、ログ監視等の合理的な安全管理措置を講じます。</p>
+    <h3>開示・削除等</h3><p>本人からの開示、訂正、利用停止、削除等の請求には、本人確認後、法令に従って対応します。</p>
+    <h3>保存期間・未成年者</h3><p>利用目的に必要な期間保存し、不要となった情報は削除または匿名化します。未成年者は保護者の同意を得て利用してください。</p>
+    <h3>問い合わせ</h3><p>運営者名・連絡先：［正式公開前に入力］</p>`;
+  if(page==='commerce') body=`<h2>特定商取引法に基づく表示（入力待ち）</h2><div class="card bad">このページは項目を準備した段階です。［入力待ち］を実情報へ変更するまで実課金を開始できません。</div>
+    <div class="tableWrap"><table><tbody>
+    <tr><th>販売事業者・代表責任者</th><td>［正式公開前に入力］</td></tr><tr><th>所在地</th><td>［正式公開前に入力］</td></tr><tr><th>電話番号・メール</th><td>［正式公開前に入力］</td></tr>
+    <tr><th>販売価格</th><td>広告なし：500円（税込予定）／剣道修練パス：月額500円（税込予定）</td></tr><tr><th>価格以外の負担</th><td>インターネット接続・通信料金</td></tr>
+    <tr><th>支払方法・時期</th><td>正式版の決済画面に表示。月額パスは申込日に課金し、解約まで毎月自動更新予定</td></tr><tr><th>提供時期</th><td>決済確認後、直ちにゲーム内へ反映予定</td></tr>
+    <tr><th>解約</th><td>次回更新日前までにアカウントの購入管理画面から解約。解約後も当該期間満了まで利用可能予定</td></tr><tr><th>返品・返金</th><td>デジタルサービスの性質上、提供開始後の利用者都合による返品・返金は原則不可。ただし法令または当方の責めに帰すべき事由がある場合を除く</td></tr>
+    <tr><th>動作環境</th><td>最新版のSafari、Chrome、Edge等。Cookie・JavaScript・localStorageを使用</td></tr></tbody></table></div>`;
+  if(page==='ads') body=`<h2>広告・課金方針</h2><h3>リワード広告</h3><p>広告は利用者が回復ボタンを押し、毎回自ら選択した場合のみ表示します。広告のクリックを回復条件にせず、視聴完了の通知を受けた場合のみスタミナを付与します。広告がない場合や失敗時は回数を消費しません。</p>
+    <h3>回復の公平性</h3><p>無課金は広告視聴、広告なし購入者と月額パス利用者は瞑想により、同じ1日5回・1回30の回復を受け取れます。</p>
+    <h3>PVP</h3><p>PVPは通常スタミナを消費しません。月額パスに攻撃力、防御力、PVP補正、限定最強装備は含めません。</p>
+    <h3>テスト表示</h3><p>現在の購入ボタンと広告ボタンは機能試験用です。実請求・実広告配信はありません。</p>`;
+  if(page==='contact') body=`<h2>お問い合わせ</h2><p>ゲームの不具合、セーブ、購入、解約、個人情報に関するお問い合わせを受け付けます。</p><div class="card"><b>連絡先メール</b><p>［正式公開前に専用メールアドレスを入力］</p><div class="small">正式公開時には受付完了の自動返信、通常の回答目安、本人確認方法を記載します。パスワードやカード番号は送信しないでください。</div></div>`;
+  return `<div class="panel">${nav}<div class="card">${body}</div></div>`;
+}
+function footerView(){return `<div class="footerNote center"><button class="ghost" onclick="G.openLegal('terms')">利用規約</button><button class="ghost" onclick="G.openLegal('privacy')">プライバシー</button><button class="ghost" onclick="G.openLegal('commerce')">特商法表示</button><button class="ghost" onclick="G.openLegal('ads')">広告・課金方針</button><button class="ghost" onclick="G.openLegal('contact')">お問い合わせ</button><div>© 2026 剣の達人への道　運営者情報：正式公開前に入力</div></div>`;}
 function settingsView(){
   return `
   <div class="panel">
@@ -3237,9 +3353,11 @@ function contentView(){
     case 'equip': return equipView();
     case 'class': return classView();
     case 'social': return socialView();
+    case 'shop': return shopView();
     case 'ranking': return rankingView();
     case 'story': return storyView();
     case 'settings': return settingsView();
+    case 'legal': return legalView();
     default: return adventureView();
   }
 }
@@ -3257,6 +3375,7 @@ function render(){
   }else{
     app.innerHTML = headerView() + navView() + contentView();
   }
+  app.innerHTML += footerView();
 
   const log = document.querySelector('.log');
   if(log) log.scrollTop = log.scrollHeight;
