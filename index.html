@@ -785,6 +785,17 @@ Object.assign(SKILLS,{
   meiju_fumetsu:{id:'meiju_fumetsu',cls:'meiju',name:'不滅血界',tier:4,col:1,req:['meiju_fushi'],sp:8,type:'passive',passive:{lifesteal:14,atkPct:14},tags:['自傷','吸血'],desc:'吸血+14%、攻撃+14%。呪血型を完成させる。'}
 });
 
+const MENTOR_TECHNIQUES = {
+  master_iai:{id:'secret_mugon',cls:'secret',mentorId:'master_iai',name:'秘伝・無音抜刀',tier:5,sp:0,type:'active',ki:42,power:4.8,critBonus:35,ignoreDef:35,fx:{stackConsume:{type:'draw',perPower:.45,max:3}},tags:['抜刀','会心'],desc:'音すら置き去りにする秘伝。480%ダメージ、防御35%無視、会心+35%。'},
+  master_nitou:{id:'secret_jumonji',cls:'secret',mentorId:'master_nitou',name:'秘伝・十文字乱舞',tier:5,sp:0,type:'active',ki:40,power:.92,hits:7,fx:{stackConsume:{type:'combo',perPower:.08,max:5}},tags:['多段','疾風'],desc:'十字の剣閃を幾重にも刻む。92%×7回、連撃で各撃強化。'},
+  master_dai:{id:'secret_tenchihou',cls:'secret',mentorId:'master_dai',name:'秘伝・天地崩断',tier:5,sp:0,type:'active',ki:48,power:5.6,ignoreDef:50,fx:{stackConsume:{type:'destroy',perPower:.5,max:3},stunChance:30},tags:['重撃','破城'],desc:'天地ごと断つ一刀。560%ダメージ、防御50%無視、30%で怯み。'},
+  master_magi:{id:'secret_gogyou',cls:'secret',mentorId:'master_magi',name:'秘伝・五行剣界',tier:5,sp:0,type:'active',ki:46,power:4.2,fx:{burn:true,freeze:true,curse:true,stackConsume:{type:'mana',perPower:.22,max:5}},tags:['属性','魔力'],desc:'五行の剣界を展開。420%ダメージ、炎上・凍結・呪いを付与。'},
+  master_sei:{id:'secret_furakuten',cls:'secret',mentorId:'master_sei',name:'秘伝・不落天陣',tier:5,sp:0,type:'active',ki:44,power:2.8,fx:{shieldPower:4.2,selfDef:50,selfTurns:3,dodgeNext:true,stackGain:{type:'guard',amount:2}},tags:['守護','回復'],desc:'不落の天陣。280%ダメージ、特大盾、防御+50%、次撃を確実回避。'},
+  master_ju:{id:'secret_yomikessou',cls:'secret',mentorId:'master_ju',name:'秘伝・黄泉血葬',tier:5,sp:0,type:'active',hpCost:25,power:5.8,healDamage:65,fx:{curse:true,bleed:true,stackConsume:{type:'blood',perPower:.45,max:5}},tags:['自傷','吸血'],desc:'血を黄泉へ捧げる禁伝。HP25%消費、580%ダメージ、65%吸収。'},
+  master_ken:{id:'secret_mukyu',cls:'secret',mentorId:'master_ken',name:'秘伝・無窮一閃',tier:5,sp:0,type:'active',ki:55,power:6.2,ignoreDef:45,fx:{dodgeNext:true,stackConsume:{type:'mind',perPower:.55,max:3}},tags:['心眼','見切り'],desc:'果てなき剣理を一閃へ束ねる。620%ダメージ、防御45%無視、次撃を確実回避。'}
+};
+for(const tech of Object.values(MENTOR_TECHNIQUES)) SKILLS[tech.id]=tech;
+
 const AREAS = [
   {id:'grass', name:'始まりの草原', mult:1, dropRate:.35, enemies:['見習いゴブリン','暴れウサギ','旅の剣士','案山子剣客','風斬り狼']},
   {id:'forest', name:'霧の森', mult:1.25, dropRate:.40, enemies:['森狼','迷い亡霊','妖刀使い','キノコ剣士','霧の暗殺者']},
@@ -847,10 +858,11 @@ const TUTORIAL = [
   {h:'職業の個性', p:'最初に選んだ上級職の系統は固定され、Lv35で系統ごとの最終職へ進みます。剣士を貫いた場合のみ剣聖を選べます。'},
   {h:'スキル継承', p:'他職スキルはアクティブ2個・パッシブ2個まで継承候補にでき、戦闘ビルドへ装備して使用します。他職の奥義は継承できません。'},
   {h:'戦闘ビルド', p:'戦闘へ持ち込めるのはアクティブ4、パッシブ4、奥義1。タグを3個揃えるとシナジーが発動します。'},
+  {h:'ビルドプリセット', p:'スキル画面で現在の戦闘ビルドを3枠まで保存し、同じ職業ならボタン1つで切り替えられます。'},
   {h:'熟練度', p:'スキル使用10・30・75・150回で熟練Lvが上がり、威力上昇と気力軽減を得ます。'},
   {h:'段位と主', p:'各エリアで3勝すると主へ挑戦可能。主を倒すと次エリアと段位が解放されます。'},
   {h:'敵の予兆', p:'技・集中・精神力が高いほど、敵の次の行動を詳しく見抜けます。'},
-  {h:'師弟', p:'師匠1人と弟子10人まで。相手レベルに応じた隠し能力「剣縁」を得ますが、上限は5%です。'},
+  {h:'師弟', p:'師匠1人と弟子10人まで。師匠との親密度100で最終試練が解放され、勝利すると専用秘伝技を継承できます。秘伝枠は1個です。'},
   {h:'装備', p:'敵が装備を落とします。インベントリから装着し、不要なら売ってゴールドに。'},
   {h:'PVP', p:'ランキングはサーバー想定のモックAPIで動きます。実サーバーに移す場合は MockServer を fetch に置き換えます。'}
 ];
@@ -866,7 +878,7 @@ const SERVER_DESIGN = [
 
 function defaultState(){
   return {
-    version:5,
+    version:6,
     screen:'title',
     name:'',
     gender:'その他',
@@ -893,9 +905,10 @@ function defaultState(){
     tutorialSeen:false,
     ui:{
       skillClass:'kenshi', selectedSkill:null, inheritActive:[], inheritPassive:[],
-      activeLoadout:[], passiveLoadout:[], ultimateLoadout:null, rankingMode:'pvp'
+      activeLoadout:[], passiveLoadout:[], ultimateLoadout:null, secretLoadout:null,
+      buildPresets:[null,null,null], rankingMode:'pvp'
     },
-    social:{mentor:null,disciples:[],changeAvailableAt:0,bondPoints:0},
+    social:{mentor:null,disciples:[],changeAvailableAt:0,bondPoints:0,mentorBonds:{}},
     online:{schemaVersion:1,userId:null,seasonId:SEASON_ID,defenseSnapshot:null,lastSyncAt:null},
     battle:null,
     rankingLoading:false,
@@ -1145,6 +1158,31 @@ function activeSynergies(){
   for(const id of ids) for(const tag of inferredSkillTags(SKILLS[id])) counts[tag]=(counts[tag]||0)+1;
   return SYNERGIES.filter(s=>(counts[s.tag]||0)>=s.need);
 }
+function mentorBond(id){
+  const raw=S.social.mentorBonds[id]||{};
+  return {intimacy:Math.max(0,Math.min(100,raw.intimacy||0)),trialCleared:!!raw.trialCleared};
+}
+function mentorTechnique(id){ return MENTOR_TECHNIQUES[id]||null; }
+function secretAffinity(sk){
+  if(!sk||!sk.mentorId) return false;
+  const paths={master_iai:['iai','mumei'],master_nitou:['nitou','souten'],master_dai:['daitou','hajou'],master_magi:['magi','madou'],master_sei:['seiken','seigo'],master_ju:['juken','meiju'],master_ken:['kenshi','kensei']};
+  return (paths[sk.mentorId]||[]).includes(S.classId);
+}
+function gainMentorIntimacy(amount){
+  const mentor=S.social.mentor,b=S.battle;
+  if(!mentor||!b||b.isPvp||b.enemy.mentorTrial||b.enemy.level<Math.max(1,Math.floor(S.level*.7))) return;
+  const old=mentorBond(mentor.id),next=Math.min(100,old.intimacy+Math.max(0,amount));
+  S.social.mentorBonds[mentor.id]={...old,intimacy:next};
+  if(next>old.intimacy) blog(`${mentor.name}との親密度+${next-old.intimacy}（${next}/100）。`,'stat');
+  for(const mark of [25,50,75,100]) if(old.intimacy<mark&&next>=mark){
+    const lines={25:'師匠があなたの剣筋を認め、過去を語り始めた。',50:'呼吸が重なり、師匠の修練報酬が解放された。',75:'秘伝へ至る最後の型を師匠から示された。',100:'親密度MAX。秘伝継承の最終試練が解放された！'};
+    blog(lines[mark],'result');
+  }
+}
+function mentorRewardPct(){
+  if(!S.social.mentor) return 0;
+  return mentorBond(S.social.mentor.id).intimacy>=50?5:0;
+}
 function swordRankIndex(){
   const clears=S.clearedAreas.length;
   if(clears>=6 && isFinalClass(S.classId)) return 6;
@@ -1184,6 +1222,7 @@ function usableSkillIds(type){
   if(type==='passive') return S.ui.passiveLoadout.filter(id=>hasSkill(id)&&SKILLS[id]&&SKILLS[id].type==='passive');
   const ids=S.ui.activeLoadout.filter(id=>hasSkill(id)&&SKILLS[id]&&SKILLS[id].type==='active'&&!isUltimateSkill(SKILLS[id]));
   if(S.ui.ultimateLoadout && hasSkill(S.ui.ultimateLoadout)) ids.push(S.ui.ultimateLoadout);
+  if(S.ui.secretLoadout && hasSkill(S.ui.secretLoadout) && SKILLS[S.ui.secretLoadout]) ids.push(S.ui.secretLoadout);
   return ids;
 }
 function canLearnSkill(sk){
@@ -1213,10 +1252,12 @@ function load(){
     const d = JSON.parse(raw);
     const def = defaultState();
     S = Object.assign({}, def, d);
+    S.version=def.version;
     S.stats = Object.assign({}, def.stats, d.stats || {});
     S.equip = Object.assign({}, def.equip, d.equip || {});
     S.ui = Object.assign({}, def.ui, d.ui || {});
     S.social = Object.assign({}, def.social, d.social || {});
+    S.social.mentorBonds=Object.assign({},d.social&&d.social.mentorBonds||{});
     S.online = Object.assign({}, def.online, d.online || {});
     if(!Array.isArray(S.clearedAreas)) S.clearedAreas=[];
     S.areaWins=Object.assign({},d.areaWins||{});
@@ -1232,9 +1273,12 @@ function load(){
     for(const item of [...S.inventory,...Object.values(S.equip).filter(Boolean)]) if(item.enhance==null) item.enhance=0;
     if(!Array.isArray(S.ui.activeLoadout)) S.ui.activeLoadout=[];
     if(!Array.isArray(S.ui.passiveLoadout)) S.ui.passiveLoadout=[];
+    if(!Array.isArray(S.ui.buildPresets)) S.ui.buildPresets=[null,null,null];
+    S.ui.buildPresets=S.ui.buildPresets.slice(0,3); while(S.ui.buildPresets.length<3) S.ui.buildPresets.push(null);
     S.ui.activeLoadout=S.ui.activeLoadout.filter(id=>SKILLS[id]&&hasSkill(id)&&!isUltimateSkill(SKILLS[id])).slice(0,4);
     S.ui.passiveLoadout=S.ui.passiveLoadout.filter(id=>SKILLS[id]&&hasSkill(id)&&SKILLS[id].type==='passive').slice(0,4);
     if(!S.ui.ultimateLoadout || !SKILLS[S.ui.ultimateLoadout] || !hasSkill(S.ui.ultimateLoadout)) S.ui.ultimateLoadout=null;
+    if(!S.ui.secretLoadout || !SKILLS[S.ui.secretLoadout] || !hasSkill(S.ui.secretLoadout) || !SKILLS[S.ui.secretLoadout].mentorId) S.ui.secretLoadout=null;
     if(!S.ui.activeLoadout.length) S.ui.activeLoadout=S.learned.filter(id=>SKILLS[id]&&SKILLS[id].type==='active'&&!isUltimateSkill(SKILLS[id])&&SKILLS[id].cls===S.classId).slice(0,4);
     if(!S.ui.passiveLoadout.length) S.ui.passiveLoadout=S.learned.filter(id=>SKILLS[id]&&SKILLS[id].type==='passive'&&SKILLS[id].cls===S.classId).slice(0,4);
     if(!S.ui.ultimateLoadout) S.ui.ultimateLoadout=S.learned.find(id=>SKILLS[id]&&isUltimateSkill(SKILLS[id])&&SKILLS[id].cls===S.classId)||null;
@@ -1392,8 +1436,8 @@ function getDerived(){
     lifesteal:p.lifesteal + eq.lifesteal,
     counter:p.counter + eq.counter,
     pvpBonus:p.pvp + eq.pvp + S.stats.pre*0.15,
-    expBonus:p.expBonus + eq.expBonus,
-    goldBonus:p.goldBonus + eq.goldBonus
+    expBonus:p.expBonus + eq.expBonus + mentorRewardPct(),
+    goldBonus:p.goldBonus + eq.goldBonus + mentorRewardPct()
   };
 }
 function getCombatPower(){
@@ -1406,7 +1450,7 @@ function buildDefenseSnapshot(){
   return {
     schemaVersion:1,userId:S.online.userId,seasonId:SEASON_ID,name:S.name,classId:S.classId,
     level:S.level,rating:S.rating,power:getCombatPower(),stats:{...S.stats},
-    loadout:{active:[...S.ui.activeLoadout],passive:[...S.ui.passiveLoadout],ultimate:S.ui.ultimateLoadout},
+    loadout:{active:[...S.ui.activeLoadout],passive:[...S.ui.passiveLoadout],ultimate:S.ui.ultimateLoadout,secret:S.ui.secretLoadout},
     equip:['weapon','armor','accessory'].map(slot=>S.equip[slot]?{slot,name:S.equip[slot].name,rarity:S.equip[slot].rarity,level:S.equip[slot].level,enhance:S.equip[slot].enhance||0}:null),
     swordRank:swordRankName(),bondBonus:bondBonusPct(),updatedAt:Date.now()
   };
@@ -1685,7 +1729,7 @@ function dealPlayerHits(d, sk, stackBonus, name){
       continue;
     }
 
-    let power = ((sk.power || 1) + stackBonus) * (1+(skillMastery(sk.id).level-1)*.03);
+    let power = ((sk.power || 1) + stackBonus) * (1+(skillMastery(sk.id).level-1)*.03) * (secretAffinity(sk)?1.1:1);
     if(sk.lowHpBoost && b.playerHP < b.maxHP*0.3){
       power *= 1.5;
       blog(`体力が尽きかけても剣先は下がらない。精神力${fmt(S.stats.men)}が窮地を力へ変える！`,'stat');
@@ -1750,6 +1794,7 @@ function useSkillById(id, d){
   }
 
   blog(`◆ ${sk.name} ◆`,'skill');
+  if(secretAffinity(sk)) blog(`剣系統が秘伝と共鳴し、威力+10%！`,'result');
   for(const line of skillPrelude(sk,d)) blog(line,'skill');
 
   let stackBonus = 0;
@@ -2153,11 +2198,24 @@ function victory(){
     S.tower.floor=b.enemy.towerFloor+1;
     blog(`無限剣塔 第${b.enemy.towerFloor}階を踏破。第${S.tower.floor}階が解放された！`,'result');
   }
+  if(b.enemy.mentorTrial){
+    const mentorId=b.enemy.mentorId,tech=mentorTechnique(mentorId);
+    const bond=mentorBond(mentorId);
+    S.social.mentorBonds[mentorId]={...bond,intimacy:100,trialCleared:true};
+    if(tech&&!hasSkill(tech.id)){
+      S.learned.push(tech.id);
+      S.ui.secretLoadout=tech.id;
+      blog(`最終試練を制覇――${S.social.mentor.name}より「${tech.name}」を伝授された！`,'result');
+    }
+  }else{
+    const intimacyGain=b.enemy.tower&&b.enemy.towerFloor%5===0?3:b.enemy.fixedBoss?3:1;
+    gainMentorIntimacy(intimacyGain);
+  }
   const rankAfter=swordRankIndex();
   if(rankAfter>rankBefore) blog(`段位昇格――「${SWORD_RANKS[rankAfter]}」に認められた！`,'result');
 
   const dropBase = b.isPvp ? 0.25 : Math.min(.98,(b.enemy.dropRate||.35) + S.stats.luk*0.002 + (b.enemy.boss ? 0.20 : 0));
-  if(Math.random() < dropBase){
+  if(!b.enemy.mentorTrial && Math.random() < dropBase){
     if(S.inventory.length < 60){
       const item = generateItem(b.enemy.level, b.enemy.boss ? (chance(30) ? 'epic' : 'rare') : null, b.enemy.boss);
       S.inventory.push(item);
@@ -2224,6 +2282,11 @@ function defeat(){
 function mentorCandidates(){
   const data=[['master_iai','月影宗十郎','mumei',18],['master_nitou','双葉サヤ','souten',16],['master_dai','巌王ガンジ','hajou',20],['master_magi','緋月レナ','madou',17],['master_sei','白盾アルマ','seigo',19],['master_ju','冥刃クロウ','meiju',21],['master_ken','無名の老剣士','kensei',25]];
   return data.map(([id,name,classId,plus])=>({id,name,classId,level:Math.max(20,S.level+plus),power:Math.max(5000,getCombatPower()+plus*900)}));
+}
+function makeMentorTrialEnemy(mentor){
+  const level=Math.max(S.level,mentor.level||S.level);
+  const d=getDerived(),hp=Math.floor(d.maxHP*1.7);
+  return {name:`【秘伝継承試練】${mentor.name}`,level,maxHP:hp,hp,atk:Math.floor(d.attack*1.08),def:Math.floor(d.defense*1.05),speed:Math.floor(d.speed*1.03),exp:Math.floor(level*80),gold:Math.floor(level*60),isPvp:false,boss:true,fixedBoss:false,mentorTrial:true,mentorId:mentor.id,areaId:null,dropRate:0,rating:0,opponentId:null,skills:makeEnemySkills(mentor.name,true)};
 }
 function discipleCandidates(){
   const names=['ハル','ナギ','トワ','スズ','カイ','ユラ','シン','ミナト','アオイ','レツ','ユキ','コウ'];
@@ -2293,6 +2356,7 @@ const G = {
     if(S.social.mentor && Date.now()<S.social.changeAvailableAt){ S.message='師匠の変更には7日間の待機期間があります。'; render(); return; }
     if(!confirm(`${candidate.name}を師匠に選びますか？`)) return;
     S.social.mentor=candidate;
+    if(!S.social.mentorBonds[candidate.id]) S.social.mentorBonds[candidate.id]={intimacy:0,trialCleared:false};
     S.social.changeAvailableAt=Date.now()+7*24*60*60*1000;
     S.message=`${candidate.name}に師事した。剣縁が隠し能力として宿る。`;
     save(); render();
@@ -2301,6 +2365,42 @@ const G = {
     if(!S.social.mentor || Date.now()<S.social.changeAvailableAt) return;
     if(!confirm('現在の師匠との契約を解除しますか？')) return;
     S.social.mentor=null; S.message='師匠との契約を解除した。'; save(); render();
+  },
+  startMentorTrial(){
+    const mentor=S.social.mentor;
+    if(!mentor) return;
+    const bond=mentorBond(mentor.id);
+    if(bond.intimacy<100||bond.trialCleared) return;
+    initBattle(makeMentorTrialEnemy(mentor),false,null);
+    S.screen='battle'; render();
+  },
+  equipSecret(id){
+    const sk=SKILLS[id];
+    if(!sk||!sk.mentorId||!hasSkill(id)) return;
+    S.ui.secretLoadout=S.ui.secretLoadout===id?null:id;
+    S.message=S.ui.secretLoadout?`${sk.name}を秘伝枠へ装備した。`:'秘伝技を外した。';
+    save(); render();
+  },
+  saveBuildPreset(index){
+    if(index<0||index>2) return;
+    S.ui.buildPresets[index]={name:`構成${index+1}`,classId:S.classId,active:[...S.ui.activeLoadout],passive:[...S.ui.passiveLoadout],ultimate:S.ui.ultimateLoadout,secret:S.ui.secretLoadout,inheritActive:[...S.ui.inheritActive],inheritPassive:[...S.ui.inheritPassive]};
+    S.message=`ビルド構成${index+1}へ現在のスキル構成を保存した。`; save(); render();
+  },
+  loadBuildPreset(index){
+    const p=S.ui.buildPresets[index]; if(!p) return;
+    if(p.classId!==S.classId){ S.message=`この構成は${CLASSES[p.classId]?CLASSES[p.classId].name:p.classId}用です。先に職業を変更してください。`; render(); return; }
+    S.ui.inheritActive=(p.inheritActive||[]).filter(id=>hasSkill(id)&&SKILLS[id]&&SKILLS[id].type==='active'&&!isUltimateSkill(SKILLS[id])).slice(0,2);
+    S.ui.inheritPassive=(p.inheritPassive||[]).filter(id=>hasSkill(id)&&SKILLS[id]&&SKILLS[id].type==='passive').slice(0,2);
+    const allowed=id=>SKILLS[id]&&(SKILLS[id].cls===S.classId||S.ui.inheritActive.includes(id)||S.ui.inheritPassive.includes(id));
+    S.ui.activeLoadout=(p.active||[]).filter(id=>hasSkill(id)&&allowed(id)&&SKILLS[id].type==='active'&&!isUltimateSkill(SKILLS[id])).slice(0,4);
+    S.ui.passiveLoadout=(p.passive||[]).filter(id=>hasSkill(id)&&allowed(id)&&SKILLS[id].type==='passive').slice(0,4);
+    S.ui.ultimateLoadout=p.ultimate&&hasSkill(p.ultimate)&&SKILLS[p.ultimate]&&SKILLS[p.ultimate].cls===S.classId?p.ultimate:null;
+    S.ui.secretLoadout=p.secret&&hasSkill(p.secret)&&SKILLS[p.secret]&&SKILLS[p.secret].mentorId?p.secret:null;
+    S.message=`ビルド構成${index+1}へ切り替えた。`; save(); render();
+  },
+  clearBuildPreset(index){
+    if(index<0||index>2) return;
+    S.ui.buildPresets[index]=null; S.message=`ビルド構成${index+1}を削除した。`; save(); render();
   },
   takeDisciple(id){
     if(S.social.disciples.length>=10){ S.message='弟子は10人までです。'; render(); return; }
@@ -2558,7 +2658,7 @@ function titleView(){
   return `
   <div class="panel center">
     <h1 class="title">剣の達人への道 無限修練版</h1>
-    <p class="subtitle">段位／予兆と見切り／固定ボス／無限剣塔／熟練度／100スキル／装備強化／師弟</p>
+    <p class="subtitle">段位／予兆／無限剣塔／熟練度／107スキル／ビルドプリセット／師弟秘伝</p>
     <div class="flex" style="justify-content:center;margin-top:14px">
       <button class="primary" onclick="G.toCreate()">新しく始める</button>
       ${S.name ? `<button onclick="G.nav('adventure')">続きから（${esc(S.name)}）</button>` : ''}
@@ -2760,8 +2860,12 @@ function skillsView(){
       <div class="small">アクティブ ${S.ui.activeLoadout.length}/4：${S.ui.activeLoadout.map(id=>SKILLS[id].name).join('、')||'なし'}</div>
       <div class="small">パッシブ ${S.ui.passiveLoadout.length}/4：${S.ui.passiveLoadout.map(id=>SKILLS[id].name).join('、')||'なし'}</div>
       <div class="small">奥義 1枠：${S.ui.ultimateLoadout?SKILLS[S.ui.ultimateLoadout].name:'なし'}</div>
+      <div class="small">秘伝 1枠：${S.ui.secretLoadout?SKILLS[S.ui.secretLoadout].name:'なし'}</div>
       <div style="margin-top:5px">${synergies.length?synergies.map(s=>`<span class="pill good">${s.name}</span>`).join(''):'<span class="pill">発動シナジーなし</span>'}</div>
       ${synergies.map(s=>`<div class="small good">${s.name}：${s.desc}</div>`).join('')}
+    </div>
+    <div class="card"><b>ビルドプリセット（3枠）</b><div class="small">現在のアクティブ・パッシブ・奥義・秘伝・継承枠をまとめて保存します。</div>
+      <div class="grid">${S.ui.buildPresets.map((p,i)=>`<div class="card"><b>構成${i+1}</b><div class="small">${p?`${CLASSES[p.classId]?CLASSES[p.classId].name:p.classId}／技${(p.active||[]).length}・常時${(p.passive||[]).length}`:'未保存'}</div><div class="flex"><button onclick="G.saveBuildPreset(${i})">上書き保存</button><button onclick="G.loadBuildPreset(${i})" ${p?'':'disabled'}>切替</button><button onclick="G.clearBuildPreset(${i})" ${p?'':'disabled'}>削除</button></div></div>`).join('')}</div>
     </div>
     <div class="card">
       <b>他職スキル継承枠</b>
@@ -2880,6 +2984,9 @@ function classView(){
 }
 function socialView(){
   const mentor=S.social.mentor;
+  const bond=mentor?mentorBond(mentor.id):null;
+  const tech=mentor?mentorTechnique(mentor.id):null;
+  const learnedSecrets=Object.values(MENTOR_TECHNIQUES).filter(t=>hasSkill(t.id));
   const candidates=discipleCandidates().filter(x=>!S.social.disciples.some(d=>d.id===x.id));
   return `
   <div class="panel">
@@ -2888,8 +2995,10 @@ function socialView(){
       <div class="small">師匠から最大2.5%、弟子の成長から最大2.5%。合計上限5%。将来のオンラインではサーバー側で計算します。</div>
     </div>
     <h3>師匠（1人）</h3>
-    ${mentor?`<div class="card learned"><b>${mentor.name}</b>　${CLASSES[mentor.classId].name} Lv${fmt(mentor.level)}<div class="small">戦闘力 ${fmt(mentor.power)}／変更可能：${new Date(S.social.changeAvailableAt).toLocaleDateString('ja-JP')}</div><button onclick="G.releaseMentor()" ${Date.now()>=S.social.changeAvailableAt?'':'disabled'}>師匠を変更する</button></div>`:
-    `<div class="grid wide">${mentorCandidates().map(m=>`<div class="card"><b>${m.name}</b><div class="small">${CLASSES[m.classId].name} Lv${fmt(m.level)}／戦闘力${fmt(m.power)}</div><button onclick="G.chooseMentor('${m.id}')">師事する</button></div>`).join('')}</div>`}
+    ${mentor?`<div class="card learned"><div class="flex"><b>${mentor.name}</b><span class="pill right">親密度 ${bond.intimacy}/100</span></div><div>${CLASSES[mentor.classId].name} Lv${fmt(mentor.level)}</div><div class="bar exp"><div style="width:${bond.intimacy}%"></div></div><div class="small">25：人物情報／50：戦闘報酬+5%／75：秘伝の型／100：最終試練</div>${bond.intimacy>=25?`<div class="small">師の言葉：「技を真似るな。刃を振る理由まで盗め」</div>`:''}<div class="skillFlavor"><b>伝授秘伝：${tech.name}</b><br>${bond.intimacy>=75?tech.desc:'親密度75で技の全容が明かされる。'}</div>${bond.intimacy>=100&&!bond.trialCleared?`<button class="primary" onclick="G.startMentorTrial()">秘伝継承の最終試練</button>`:''}${bond.trialCleared?'<span class="pill good">秘伝継承済み</span>':''}<div class="small">戦闘力 ${fmt(mentor.power)}／変更可能：${new Date(S.social.changeAvailableAt).toLocaleDateString('ja-JP')}</div><button onclick="G.releaseMentor()" ${Date.now()>=S.social.changeAvailableAt?'':'disabled'}>師匠を変更する</button></div>`:
+    `<div class="grid wide">${mentorCandidates().map(m=>{const t=mentorTechnique(m.id),mb=mentorBond(m.id);return `<div class="card"><b>${m.name}</b><div class="small">${CLASSES[m.classId].name} Lv${fmt(m.level)}／親密度${mb.intimacy}</div><div class="small gold">${t.name}</div><button onclick="G.chooseMentor('${m.id}')">師事する</button></div>`}).join('')}</div>`}
+    <h3>習得済み秘伝（${learnedSecrets.length}/7）</h3>
+    ${learnedSecrets.length?`<div class="grid wide">${learnedSecrets.map(t=>`<div class="card ${S.ui.secretLoadout===t.id?'selected':''}"><b>${t.name}</b><div class="small">${t.desc}</div><button onclick="G.equipSecret('${t.id}')">${S.ui.secretLoadout===t.id?'秘伝枠から外す':'秘伝枠へ装備'}</button></div>`).join('')}</div>`:'<div class="small">師匠との親密度を100にし、最終試練を制して秘伝を受け継ごう。</div>'}
     <h3>弟子（${S.social.disciples.length}/10）</h3>
     ${S.social.disciples.length?`<div class="grid wide">${S.social.disciples.map(d=>`<div class="card"><b>${d.name}</b><div class="small">${CLASSES[d.classId].name} Lv${fmt(d.level)}／修練${d.exp||0}/3</div><button onclick="G.dismissDisciple('${d.id}')">契約解除</button></div>`).join('')}</div>`:'<p class="small">まだ弟子はいません。</p>'}
     ${S.social.disciples.length<10?`<h3>弟子候補</h3><div class="grid wide">${candidates.slice(0,10).map(d=>`<div class="card"><b>${d.name}</b><div class="small">${CLASSES[d.classId].name} Lv${fmt(d.level)}</div><button onclick="G.takeDisciple('${d.id}')">弟子に取る</button></div>`).join('')}</div>`:''}
