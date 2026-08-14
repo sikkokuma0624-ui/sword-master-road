@@ -146,6 +146,7 @@ input,select{
 .bar.hp div{background:linear-gradient(90deg,#ff5252,#ff8a80)}
 .bar.ki div{background:linear-gradient(90deg,#2196f3,#90caf9)}
 .bar.exp div{background:linear-gradient(90deg,#ffd54f,#fff176)}
+.bar.ultimate div{background:linear-gradient(90deg,#7c4dff,#ffb300,#fff59d)}
 .bar.enemy div{background:linear-gradient(90deg,#b71c1c,#ef5350)}
 .log{
   height:360px;
@@ -858,6 +859,7 @@ const TUTORIAL = [
   {h:'職業の個性', p:'最初に選んだ上級職の系統は固定され、Lv35で系統ごとの最終職へ進みます。剣士を貫いた場合のみ剣聖を選べます。'},
   {h:'スキル継承', p:'他職スキルはアクティブ2個・パッシブ2個まで継承候補にでき、戦闘ビルドへ装備して使用します。他職の奥義は継承できません。'},
   {h:'戦闘ビルド', p:'戦闘へ持ち込めるのはアクティブ4、パッシブ4、奥義1。タグを3個揃えるとシナジーが発動します。'},
+  {h:'極意ゲージ', p:'戦闘開始時は0。通常攻撃・通常スキル・防御・被ダメージ・会心・回避で蓄積し、奥義は100、秘伝技は200消費します。'},
   {h:'ビルドプリセット', p:'スキル画面で現在の戦闘ビルドを3枠まで保存し、同じ職業ならボタン1つで切り替えられます。'},
   {h:'熟練度', p:'スキル使用10・30・75・150回で熟練Lvが上がり、威力上昇と気力軽減を得ます。'},
   {h:'段位と主', p:'各エリアで3勝すると主へ挑戦可能。主を倒すと次エリアと段位が解放されます。'},
@@ -878,7 +880,7 @@ const SERVER_DESIGN = [
 
 function defaultState(){
   return {
-    version:6,
+    version:7,
     screen:'title',
     name:'',
     gender:'その他',
@@ -1628,6 +1630,8 @@ function initBattle(enemy, isPvp, opponentId){
     playerKI:d.maxKI,
     maxHP:d.maxHP,
     maxKI:d.maxKI,
+    ultimateGauge:0,
+    maxUltimateGauge:200,
     shield:0,
     stacks:{draw:0, combo:0, destroy:0, mana:0, guard:0, blood:0, mind:0},
     buffs:{atk:0, def:0, dodge:0, crit:0, turns:0},
@@ -1670,6 +1674,22 @@ function initBattle(enemy, isPvp, opponentId){
   if(isPvp) blog('互いの剣格を賭けたランキング戦が始まる！','system');
 }
 function canAct(){ return S.battle && !S.battle.over; }
+function ultimateGaugeCost(sk){
+  if(!sk) return 0;
+  if(sk.mentorId) return 200;
+  if(isUltimateSkill(sk)) return 100;
+  return 0;
+}
+function addUltimateGauge(amount,reason=''){
+  const b=S.battle;
+  if(!b||b.over||amount<=0) return;
+  const before=b.ultimateGauge||0;
+  b.ultimateGauge=Math.min(b.maxUltimateGauge||200,before+amount);
+  const gained=b.ultimateGauge-before;
+  if(gained>0) blog(`極意ゲージ+${gained}${reason?`（${reason}）`:''}：${b.ultimateGauge}/${b.maxUltimateGauge}`,'stat');
+  if(before<100&&b.ultimateGauge>=100) blog('剣気が臨界へ達した――奥義発動可能！','result');
+  if(before<200&&b.ultimateGauge>=200) blog('極意完成――秘伝技発動可能！','result');
+}
 function addStack(type, amount){
   const b = S.battle;
   if(!b) return;
@@ -1709,6 +1729,7 @@ function skillUsable(sk){
   const b = S.battle;
   if(!b || !sk || sk.type !== 'active') return false;
   if(skillKiCost(sk) > b.playerKI) return false;
+  if((b.ultimateGauge||0)<ultimateGaugeCost(sk)) return false;
   if(sk.hpCost){
     const cost = Math.floor(b.maxHP * sk.hpCost / 100);
     if(b.playerHP <= cost + 1) return false;
@@ -1752,6 +1773,7 @@ function dealPlayerHits(d, sk, stackBonus, name){
     total += dmg;
     blog(`${name}${hits > 1 ? `・${i+1}撃目` : ''}――${fmt(dmg)}ダメージ！`+(crit ? '【会心】' : ''),crit ? 'crit' : 'impact');
     blog(impactLine(dmg,b.enemy.maxHP,crit),crit ? 'crit' : 'tech');
+    if(crit) addUltimateGauge(5,'会心');
   }
 
   const healPct = (sk.healDamage || 0) + d.lifesteal;
@@ -1772,6 +1794,7 @@ function basicAttack(d){
   if(S.stats.tec >= S.level + 12) blog(`技${fmt(S.stats.tec)}が最短の刃筋を選び、会心点へ切先を導く。`,'stat');
   if(S.stats.str >= S.level + 12) blog(`力${fmt(S.stats.str)}の剣圧が敵の防御姿勢を軋ませる。`,'stat');
   dealPlayerHits(d, {power:1, hits:1}, 0, '通常攻撃');
+  addUltimateGauge(20,'通常攻撃');
   return true;
 }
 function useSkillById(id, d){
@@ -1784,6 +1807,12 @@ function useSkillById(id, d){
   }
 
   const fx = sk.fx || {};
+
+  const gaugeCost=ultimateGaugeCost(sk);
+  if(gaugeCost){
+    b.ultimateGauge-=gaugeCost;
+    blog(`${sk.mentorId?'秘伝':'奥義'}発動――極意ゲージ${gaugeCost}消費！ 残り${b.ultimateGauge}/${b.maxUltimateGauge}`,'skill');
+  }
 
   const actualKiCost=skillKiCost(sk);
   if(actualKiCost) b.playerKI -= actualKiCost;
@@ -1883,6 +1912,7 @@ function useSkillById(id, d){
   }
 
   recordSkillUse(id);
+  if(!gaugeCost) addUltimateGauge(15,'通常スキル');
 
   return true;
 }
@@ -1904,6 +1934,7 @@ function enemyTurn(d){
   if(b.statuses.dodgeNext){
     b.statuses.dodgeNext = false;
     blog(`心眼が捉えた未来どおり半歩だけ退く。敵の刃は虚空を斬った！`,'defense');
+    addUltimateGauge(10,'完全な見切り');
     b.enemyIntent=rollEnemyIntent(b.enemy);
     return;
   }
@@ -1914,6 +1945,7 @@ function enemyTurn(d){
       ? `素早さ${fmt(S.stats.agi)}の足捌き。刃が届く寸前に間合いの外へ消える！`
       : `技${fmt(S.stats.tec)}で剣先の起こりを読み、最小の動きでかわした！`;
     blog(dodgeLine,'stat');
+    addUltimateGauge(5,'回避');
     b.enemyIntent=rollEnemyIntent(b.enemy);
     return;
   }
@@ -1966,6 +1998,8 @@ function enemyTurn(d){
       blog(`刃と刃が噛み合う。守り切り、ダメージを通さない！`,'defense');
     }
   }
+
+  if(totalDamage>0) addUltimateGauge(10,'被ダメージ');
 
   if(move.defDown){ b.buffs.def=Math.max(-45,b.buffs.def-move.defDown); b.buffs.turns=3; blog(`構えを崩され、防御-${move.defDown}%！`,'enemySkill'); }
   if(move.atkDown){ b.buffs.atk=Math.max(-45,b.buffs.atk-move.atkDown); b.buffs.turns=3; blog(`剣気を乱され、攻撃-${move.atkDown}%！`,'enemySkill'); }
@@ -2059,6 +2093,7 @@ function performAction(action){
     if(res === 'guard') addStack('guard', 1);
     blog(`刃を正中線へ立て、守備${fmt(S.stats.def)}の型で敵の剣路を塞ぐ。`,'defense');
     blog(`呼吸を乱さず攻撃を待つ。気力+20。`,'stat');
+    addUltimateGauge(25,'防御');
     enemyTurn(d);
     if(checkPlayerDead()) return;
     if(b.enemy.hp <= 0){ victory(); return; }
@@ -2885,7 +2920,7 @@ function skillsView(){
       <div class="card" style="margin-top:12px">
         <div class="flex">
           <b>${selected.name}</b>
-          <span class="pill right">${isUltimateSkill(selected)?'奥義':selected.type === 'active' ? 'アクティブ' : 'パッシブ'} / SP${selected.sp}${selected.ki ? ` / KI${skillKiCost(selected)}` : ''}${selected.hpCost ? ` / HP${selected.hpCost}%` : ''}</span>
+          <span class="pill right">${isUltimateSkill(selected)?'奥義':selected.type === 'active' ? 'アクティブ' : 'パッシブ'} / SP${selected.sp}${selected.ki ? ` / KI${skillKiCost(selected)}` : ''}${selected.hpCost ? ` / HP${selected.hpCost}%` : ''}${ultimateGaugeCost(selected)?` / 極意${ultimateGaugeCost(selected)}`:''}</span>
         </div>
         <div class="small">前提：${reqText}</div>
         <div class="small">タグ：${inferredSkillTags(selected).map(t=>`【${t}】`).join('')}／熟練Lv${skillMastery(selected.id).level}／使用${fmt(skillMastery(selected.id).uses)}回／${masteryNextText(selected.id)}</div>
@@ -3103,6 +3138,7 @@ function battleView(){
   const d = getDerived();
   const hpPct = Math.max(0, Math.floor((b.playerHP / b.maxHP) * 100));
   const kiPct = Math.max(0, Math.floor((b.playerKI / b.maxKI) * 100));
+  const ultimatePct = Math.max(0,Math.floor(((b.ultimateGauge||0)/(b.maxUltimateGauge||200))*100));
   const ehpPct = Math.max(0, Math.floor((b.enemy.hp / b.enemy.maxHP) * 100));
 
   const activeSkills = usableSkillIds('active')
@@ -3139,6 +3175,7 @@ function battleView(){
               ${sk.ki ? `KI${skillKiCost(sk)}` : ''}
               ${sk.hpCost ? `HP${sk.hpCost}%` : ''}
               ${sk.fx && sk.fx.stackConsume && sk.fx.stackConsume.required ? ` / ${RESOURCE_NAMES[sk.fx.stackConsume.type]}必須` : ''}
+              ${ultimateGaugeCost(sk)?` / 極意${ultimateGaugeCost(sk)}${(b.ultimateGauge||0)<ultimateGaugeCost(sk)?`（あと${ultimateGaugeCost(sk)-(b.ultimateGauge||0)}）`:''}`:''}
             </span><br><span class="small">熟練Lv${skillMastery(sk.id).level}・使用${fmt(skillMastery(sk.id).uses)}回</span><br><span class="small">${skillFlavor(sk).slice(0,34)}…</span>
           </button>
         `).join('')}
@@ -3157,6 +3194,8 @@ function battleView(){
         <div class="small">HP ${fmt(Math.max(0, b.playerHP))} / ${fmt(b.maxHP)}</div>
         <div class="bar ki"><div style="width:${kiPct}%"></div></div>
         <div class="small">気力 ${fmt(Math.max(0, b.playerKI))} / ${fmt(b.maxKI)}</div>
+        <div class="bar ultimate"><div style="width:${ultimatePct}%"></div></div>
+        <div class="small">極意 ${fmt(b.ultimateGauge||0)} / ${fmt(b.maxUltimateGauge||200)}　<span class="gold">奥義100／秘伝200</span></div>
         <div>${stackPills}</div>
         ${b.shield > 0 ? `<span class="pill good">シールド ${fmt(b.shield)}</span>` : ''}
         ${b.statuses.dodgeNext ? '<span class="pill good">必中回避</span>' : ''}
