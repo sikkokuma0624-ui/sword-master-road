@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>剣の達人への道 剣戟演出版</title>
+<title>剣の達人への道 無限修練版</title>
 <style>
 :root{
   --bg:#0b0b10;
@@ -213,7 +213,7 @@ input,select{
 .tree{
   position:relative;
   width:620px;
-  height:410px;
+  height:540px;
 }
 .tree svg{
   position:absolute;
@@ -752,6 +752,38 @@ const SKILLS = {
   }
 };
 
+// 各職業のビルド分岐を増やす第4段階スキル。タグはシナジー判定にも使用する。
+Object.assign(SKILLS,{
+  ken_ryuten:{id:'ken_ryuten',cls:'kenshi',name:'流転返し',tier:4,col:0,req:['ken_shinen'],sp:7,type:'active',ki:22,power:2.2,fx:{dodgeNext:true},tags:['技巧','見切り'],desc:'220%ダメージ。次の攻撃を確実に回避。見切り型の中核技。'},
+  ken_hyakusen:{id:'ken_hyakusen',cls:'kenshi',name:'百戦の呼吸',tier:4,col:1,req:['ken_master'],sp:7,type:'passive',passive:{atkPct:6,defPct:8,kiMax:10},tags:['基本','呼吸'],desc:'攻撃+6%、防御+8%、最大気力+10。基本型シナジー。'},
+  iai_shungetsu:{id:'iai_shungetsu',cls:'iai',name:'瞬月抜刀',tier:4,col:0,req:['iai_okui'],sp:8,type:'active',ki:34,power:3.4,critBonus:35,ignoreDef:25,fx:{stackConsume:{type:'draw',perPower:.35,max:3}},tags:['抜刀','会心'],desc:'340%ダメージ。会心+35%、防御25%無視。抜刀・会心シナジー。'},
+  iai_sayanari:{id:'iai_sayanari',cls:'iai',name:'鞘鳴りの極意',tier:4,col:1,req:['iai_zanshin'],sp:7,type:'passive',passive:{crit:10,skillPct:8},tags:['抜刀','会心'],desc:'会心+10%、スキル威力+8%。抜刀系3技でシナジー。'},
+  nitou_yae:{id:'nitou_yae',cls:'nitou',name:'八重疾風',tier:4,col:0,req:['nitou_okui'],sp:8,type:'active',ki:32,power:.82,hits:6,fx:{stackConsume:{type:'combo',perPower:.08,max:5}},tags:['多段','疾風'],desc:'82%×6回。連撃1につき各撃+8%。多段・疾風シナジー。'},
+  nitou_renjin:{id:'nitou_renjin',cls:'nitou',name:'連刃律',tier:4,col:1,req:['nitou_nitten'],sp:7,type:'passive',passive:{dodge:8,atkPct:7},tags:['多段','疾風'],desc:'回避+8%、攻撃+7%。多段技と回避のシナジーを強化。'},
+  dai_gousai:{id:'dai_gousai',cls:'daitou',name:'剛砕震',tier:4,col:0,req:['dai_okui'],sp:8,type:'active',ki:38,power:4.0,ignoreDef:35,fx:{enemyDefDown:25,stackConsume:{type:'destroy',perPower:.4,max:3}},tags:['重撃','破城'],desc:'400%ダメージ。防御35%無視・敵防御-25%。重撃・破城シナジー。'},
+  dai_fudou:{id:'dai_fudou',cls:'daitou',name:'不動重心',tier:4,col:1,req:['dai_body'],sp:7,type:'passive',passive:{hpPct:12,defPct:10},tags:['重撃','堅牢'],desc:'最大HP+12%、防御+10%。重撃・堅牢シナジー。'},
+  magi_sanshoku:{id:'magi_sanshoku',cls:'magi',name:'三色魔閃',tier:4,col:0,req:['magi_okui'],sp:8,type:'active',ki:36,power:3.2,critBonus:15,fx:{burn:true,freeze:true,stackConsume:{type:'mana',perPower:.16,max:5}},tags:['属性','魔力'],desc:'320%ダメージ。炎上・凍結。属性・魔力シナジー。'},
+  magi_junkan:{id:'magi_junkan',cls:'magi',name:'魔力循環路',tier:4,col:1,req:['magi_tune'],sp:7,type:'passive',passive:{skillPct:14,kiMax:15},tags:['属性','魔力'],desc:'スキル威力+14%、最大気力+15。属性技3種でシナジー。'},
+  sei_kouki:{id:'sei_kouki',cls:'seiken',name:'光輝反陣',tier:4,col:0,req:['sei_okui'],sp:8,type:'active',ki:34,power:2.4,fx:{shieldPower:2.2,healMax:15,stackGain:{type:'guard',amount:2}},tags:['守護','回復'],desc:'240%ダメージ。大シールド・HP15%回復。守護・回復シナジー。'},
+  sei_jihi:{id:'sei_jihi',cls:'seiken',name:'不滅の慈悲',tier:4,col:1,req:['sei_bless'],sp:7,type:'passive',passive:{hpPct:12,defPct:10,counter:8},tags:['守護','回復'],desc:'最大HP+12%、防御+10%、反撃+8%。守護・回復シナジー。'},
+  ju_rinne:{id:'ju_rinne',cls:'juken',name:'呪血輪廻斬',tier:4,col:0,req:['ju_okui'],sp:8,type:'active',hpCost:20,power:4.1,healDamage:55,fx:{curse:true,bleed:true,stackConsume:{type:'blood',perPower:.3,max:5}},tags:['自傷','吸血'],desc:'HP20%消費。410%ダメージ、55%吸収。自傷・吸血シナジー。'},
+  ju_chigiri:{id:'ju_chigiri',cls:'juken',name:'血契の刻印',tier:4,col:1,req:['ju_pain'],sp:7,type:'passive',passive:{lifesteal:9,atkPct:8},tags:['自傷','吸血'],desc:'吸血+9%、攻撃+8%。自傷技3種でシナジー。'},
+  kensei_ku:{id:'kensei_ku',cls:'kensei',name:'空之太刀',tier:4,col:0,req:['kensei_okui'],sp:9,type:'active',ki:44,power:4.5,ignoreDef:40,fx:{dodgeNext:true,stackConsume:{type:'mind',perPower:.4,max:3}},tags:['心眼','見切り'],desc:'450%ダメージ。防御40%無視、次撃確実回避。心眼・見切りシナジー。'},
+  kensei_banri:{id:'kensei_banri',cls:'kensei',name:'万理一剣',tier:4,col:1,req:['kensei_mind'],sp:8,type:'passive',passive:{atkPct:8,defPct:8,dodge:6},tags:['心眼','見切り'],desc:'攻撃・防御+8%、回避+6%。心眼系3技でシナジー。'},
+  mumei_zetsuei:{id:'mumei_zetsuei',cls:'mumei',name:'絶影終刀',tier:4,col:0,req:['mumei_okui'],sp:10,type:'active',ki:52,power:5.4,critBonus:40,ignoreDef:50,fx:{stackConsume:{type:'draw',perPower:.6,max:3,required:true}},tags:['抜刀','会心'],desc:'540%ダメージ。会心+40%、防御50%無視。抜刀・会心シナジー。'},
+  mumei_mushin:{id:'mumei_mushin',cls:'mumei',name:'無心納刀',tier:4,col:1,req:['mumei_seijaku'],sp:8,type:'passive',passive:{crit:14,skillPct:10},tags:['抜刀','会心'],desc:'会心+14%、スキル威力+10%。抜刀型を完成させる。'},
+  souten_amatsu:{id:'souten_amatsu',cls:'souten',name:'天津双星',tier:4,col:0,req:['souten_okui'],sp:10,type:'active',ki:48,power:.95,hits:8,fx:{stackConsume:{type:'combo',perPower:.09,max:5}},tags:['多段','疾風'],desc:'95%×8回。連撃1につき各撃+9%。多段・疾風シナジー。'},
+  souten_muei:{id:'souten_muei',cls:'souten',name:'無影歩法',tier:4,col:1,req:['souten_kasumi'],sp:8,type:'passive',passive:{dodge:15,spdPct:8},tags:['多段','疾風'],desc:'回避+15%、速度+8%。多段回避ビルドを完成させる。'},
+  hajou_ouga:{id:'hajou_ouga',cls:'hajou',name:'王牙地滅',tier:4,col:0,req:['hajou_okui'],sp:10,type:'active',ki:58,power:6.0,ignoreDef:45,fx:{enemyDefDown:30,stackConsume:{type:'destroy',perPower:.65,max:3}},tags:['重撃','破城'],desc:'600%ダメージ。防御45%無視・敵防御-30%。重撃・破城シナジー。'},
+  hajou_daichi:{id:'hajou_daichi',cls:'hajou',name:'大地の王体',tier:4,col:1,req:['hajou_kyotai'],sp:8,type:'passive',passive:{hpPct:20,defPct:12},tags:['重撃','堅牢'],desc:'最大HP+20%、防御+12%。破城型の耐久を完成させる。'},
+  madou_konton:{id:'madou_konton',cls:'madou',name:'混沌七星刃',tier:4,col:0,req:['madou_okui'],sp:10,type:'active',ki:56,power:5.0,healDamage:20,fx:{burn:true,freeze:true,curse:true,stackConsume:{type:'mana',perPower:.3,max:5}},tags:['属性','魔力'],desc:'500%ダメージ。炎上・凍結・呪い。属性・魔力シナジー。'},
+  madou_oushin:{id:'madou_oushin',cls:'madou',name:'皇心魔炉',tier:4,col:1,req:['madou_shinzui'],sp:8,type:'passive',passive:{skillPct:22,kiMax:20},tags:['属性','魔力'],desc:'スキル威力+22%、最大気力+20。属性型を完成させる。'},
+  seigo_tenmon:{id:'seigo_tenmon',cls:'seigo',name:'天門王盾',tier:4,col:0,req:['seigo_okui'],sp:10,type:'active',ki:54,power:3.0,fx:{shieldPower:4.0,healMax:30,selfDef:50,selfTurns:3},tags:['守護','回復'],desc:'300%ダメージ。特大シールド・HP30%回復・防御+50%。守護シナジー。'},
+  seigo_eikou:{id:'seigo_eikou',cls:'seigo',name:'永劫守護',tier:4,col:1,req:['seigo_furaku'],sp:8,type:'passive',passive:{hpPct:22,defPct:18,counter:12},tags:['守護','回復'],desc:'最大HP+22%、防御+18%、反撃+12%。不落型を完成させる。'},
+  meiju_makai:{id:'meiju_makai',cls:'meiju',name:'魔界血河断',tier:4,col:0,req:['meiju_okui'],sp:10,type:'active',hpCost:30,power:6.2,healDamage:60,fx:{curse:true,bleed:true,stackConsume:{type:'blood',perPower:.55,max:5}},tags:['自傷','吸血'],desc:'HP30%消費。620%ダメージ、60%吸収。自傷・吸血シナジー。'},
+  meiju_fumetsu:{id:'meiju_fumetsu',cls:'meiju',name:'不滅血界',tier:4,col:1,req:['meiju_fushi'],sp:8,type:'passive',passive:{lifesteal:14,atkPct:14},tags:['自傷','吸血'],desc:'吸血+14%、攻撃+14%。呪血型を完成させる。'}
+});
+
 const AREAS = [
   {id:'grass', name:'始まりの草原', mult:1, dropRate:.35, enemies:['見習いゴブリン','暴れウサギ','旅の剣士','案山子剣客','風斬り狼']},
   {id:'forest', name:'霧の森', mult:1.25, dropRate:.40, enemies:['森狼','迷い亡霊','妖刀使い','キノコ剣士','霧の暗殺者']},
@@ -765,6 +797,27 @@ const AREAS = [
     dropRate:.65,
     enemies:['過去の剣士','剣の残響','始まりの剣','終焉の剣','達人の幻影']
   }
+];
+
+const AREA_BOSSES = {
+  grass:{name:'道場破り・赤城',title:'草原の主',power:1.45,rewardGold:1200,rewardSp:5},
+  forest:{name:'霧隠れの剣鬼',title:'霧の主',power:1.65,rewardGold:2500,rewardSp:6},
+  grave:{name:'死せる剣豪・宗厳',title:'墓所の主',power:1.90,rewardGold:5000,rewardSp:7},
+  mine:{name:'破城の巨剣・巌鉄',title:'坑道の主',power:2.20,rewardGold:9000,rewardSp:8},
+  tower:{name:'天剣宗師・白蓮',title:'天剣の主',power:2.55,rewardGold:16000,rewardSp:10},
+  memory:{name:'己が剣影',title:'最後の剣',power:3.00,rewardGold:30000,rewardSp:15}
+};
+const SWORD_RANKS = ['見習い','剣士','剣客','剣豪','師範','宗師','剣極'];
+const MASTERY_THRESHOLDS = [0,10,30,75,150];
+const SEASON_ID = 'S1-剣ノ黎明';
+const SYNERGIES = [
+  {id:'draw',name:'抜刀連鎖',tag:'抜刀',need:3,desc:'抜刀系3技。会心+8%、スキル威力+5%。',bonus:{crit:8,skillPct:5}},
+  {id:'multi',name:'疾風剣舞',tag:'多段',need:3,desc:'多段系3技。攻撃+5%、回避+8%。',bonus:{atkPct:5,dodge:8}},
+  {id:'break',name:'破城の型',tag:'重撃',need:3,desc:'重撃系3技。攻撃+10%、防御+5%。',bonus:{atkPct:10,defPct:5}},
+  {id:'element',name:'魔力循環',tag:'属性',need:3,desc:'属性系3技。スキル威力+12%、最大気力+10。',bonus:{skillPct:12,kiMax:10}},
+  {id:'sanctuary',name:'不落聖域',tag:'守護',need:3,desc:'守護系3技。最大HP+8%、防御+10%。',bonus:{hpPct:8,defPct:10}},
+  {id:'blood',name:'呪血輪廻',tag:'自傷',need:3,desc:'自傷系3技。攻撃+8%、吸血+8%。',bonus:{atkPct:8,lifesteal:8}},
+  {id:'insight',name:'剣心一如',tag:'見切り',need:3,desc:'見切り系3技。会心・回避+6%。',bonus:{crit:6,dodge:6}}
 ];
 
 const STORY = [
@@ -784,7 +837,12 @@ const TUTORIAL = [
   {h:'ステータス', p:'10種類のステータスを自由に振れます。力・技・素早さ・体力・精神力・守備・幸運・気力・集中・威圧。'},
   {h:'スキルツリー', p:'スキルは視覚的なツリーから習得します。前提スキルやSPを考慮して、自分だけの構成を作ってください。'},
   {h:'職業の個性', p:'最初に選んだ上級職の系統は固定され、Lv35で系統ごとの最終職へ進みます。剣士を貫いた場合のみ剣聖を選べます。'},
-  {h:'スキル継承', p:'現在職のスキルはすべて使用できます。他職スキルはアクティブ2個・パッシブ2個まで継承でき、他職の奥義は継承できません。'},
+  {h:'スキル継承', p:'他職スキルはアクティブ2個・パッシブ2個まで継承候補にでき、戦闘ビルドへ装備して使用します。他職の奥義は継承できません。'},
+  {h:'戦闘ビルド', p:'戦闘へ持ち込めるのはアクティブ4、パッシブ4、奥義1。タグを3個揃えるとシナジーが発動します。'},
+  {h:'熟練度', p:'スキル使用10・30・75・150回で熟練Lvが上がり、威力上昇と気力軽減を得ます。'},
+  {h:'段位と主', p:'各エリアで3勝すると主へ挑戦可能。主を倒すと次エリアと段位が解放されます。'},
+  {h:'敵の予兆', p:'技・集中・精神力が高いほど、敵の次の行動を詳しく見抜けます。'},
+  {h:'師弟', p:'師匠1人と弟子10人まで。相手レベルに応じた隠し能力「剣縁」を得ますが、上限は5%です。'},
   {h:'装備', p:'敵が装備を落とします。インベントリから装着し、不要なら売ってゴールドに。'},
   {h:'PVP', p:'ランキングはサーバー想定のモックAPIで動きます。実サーバーに移す場合は MockServer を fetch に置き換えます。'}
 ];
@@ -800,7 +858,7 @@ const SERVER_DESIGN = [
 
 function defaultState(){
   return {
-    version:3,
+    version:4,
     screen:'title',
     name:'',
     gender:'その他',
@@ -809,6 +867,10 @@ function defaultState(){
     statPoints:0,
     sp:0,
     gold:250,
+    swordRank:0,
+    clearedAreas:[],
+    areaWins:{},
+    skillMastery:{},
     stats:{str:5,tec:5,agi:5,vit:5,men:5,def:5,luk:5,ki:5,foc:5,pre:5},
     classId:'kenshi',
     classPath:null,
@@ -820,7 +882,12 @@ function defaultState(){
     losses:0,
     storyStep:0,
     tutorialSeen:false,
-    ui:{skillClass:'kenshi', selectedSkill:null, inheritActive:[], inheritPassive:[]},
+    ui:{
+      skillClass:'kenshi', selectedSkill:null, inheritActive:[], inheritPassive:[],
+      activeLoadout:[], passiveLoadout:[], ultimateLoadout:null, rankingMode:'pvp'
+    },
+    social:{mentor:null,disciples:[],changeAvailableAt:0,bondPoints:0},
+    online:{schemaVersion:1,userId:null,seasonId:SEASON_ID,defenseSnapshot:null,lastSyncAt:null},
     battle:null,
     rankingLoading:false,
     rankingData:null,
@@ -929,7 +996,7 @@ function classStanceLine(cls){
 }
 function skillPrelude(sk,d){
   const focus = S.stats.foc >= S.level + 10 ? '研ぎ澄まされた集中が、技の輪郭を鮮明にする。' : '呼吸を整え、狙う一点へ意識を絞る。';
-  const ki = sk.ki ? `気力${sk.ki}を刀身へ注ぎ込む。` : sk.hpCost ? `生命力を${sk.hpCost}%、刃への代価として差し出す。` : '構えが静かに完成する。';
+  const ki = sk.ki ? `気力${skillKiCost(sk)}を刀身へ注ぎ込む。` : sk.hpCost ? `生命力を${sk.hpCost}%、刃への代価として差し出す。` : '構えが静かに完成する。';
   return [focus,ki,skillFlavor(sk)];
 }
 function basicSwordNarration(d){
@@ -986,6 +1053,24 @@ function makeEnemySkills(name,boss=false){
   if(boss) skills.push({name:'主技・絶命剣',power:1.85,crit:20,text:'主の殺気が爆発する。全身全霊の必殺剣が空間を裂く！'});
   return skills;
 }
+function rollEnemyIntent(enemy){
+  const useSkill=Array.isArray(enemy.skills)&&chance(enemy.boss?62:42);
+  const normals=[
+    {name:'踏み込み斬り',power:1.0,text:'敵は間合いを詰め、肩口へ鋭く斬り下ろす！'},
+    {name:'逆袈裟',power:1.12,text:'低い姿勢から刃が跳ね上がり、逆袈裟に襲いかかる！'},
+    {name:'牽制突き',power:.82,text:'視線を散らす小さな動きから、喉元へ真っ直ぐな突き！'},
+    {name:'渾身斬り',power:1.38,text:'大きく息を吐き、全体重を乗せた斬撃を振り抜く！'}
+  ];
+  return {move:useSkill?choice(enemy.skills):choice(normals),isSkill:useSkill};
+}
+function enemyIntentText(b){
+  const move=b.enemyIntent&&b.enemyIntent.move;
+  if(!move) return '敵の気配を読めない。';
+  const insight=S.stats.tec+S.stats.foc+S.stats.men;
+  if(insight>=S.level*3+45) return `完全看破：${move.name}／${move.hits||1}撃／威力${Math.round((move.power||1)*100)}%`;
+  if(insight>=S.level*2+25) return move.power>=1.3?'強烈な大技。防御か回避が有効。':move.hits>1?'連続攻撃。シールドと防御が有効。':move.defDown||move.atkDown||move.spdDown?'崩しを伴う技巧。先制攻撃を警戒。':'標準的な斬撃。';
+  return move.power>=1.3?'敵が大きく振りかぶっている……':move.hits>1?'敵の両肩が細かく動いている……':'敵の剣先がわずかに揺れる……';
+}
 function expNeeded(lv){
   const l = Math.max(1, Math.floor(lv));
   const v = 85 + l*55 + l*l*9;
@@ -997,6 +1082,66 @@ function expPercent(){
   return Math.min(100, Math.floor((S.exp / need) * 100));
 }
 function hasSkill(id){ return Array.isArray(S.learned) && S.learned.includes(id); }
+function isUltimateSkill(sk){ return !!sk && sk.type === 'active' && sk.name.startsWith('奥義・'); }
+function inferredSkillTags(sk){
+  if(!sk) return [];
+  if(Array.isArray(sk.tags)) return sk.tags;
+  const n=sk.name, tags=[];
+  if(/居合|抜刀|鞘|無明/.test(n)) tags.push('抜刀','会心');
+  if(/双剣|剣舞|二天|連|千鳥|双天|乱舞/.test(n)) tags.push('多段','疾風');
+  if(/大剣|叩き|地割|山岳|破城|断岳|粉城/.test(n)) tags.push('重撃','破城');
+  if(/炎|氷|雷|魔|紅蓮|白亜|紫電/.test(n)) tags.push('属性','魔力');
+  if(/盾|聖|祈り|守護|城壁|聖域/.test(n)) tags.push('守護','回復');
+  if(/血|呪|犠牲|黒蝕|冥/.test(n)) tags.push('自傷','吸血');
+  if(/心眼|無念|無刀|受け流し|残心|流転/.test(n)) tags.push('見切り','心眼');
+  if(!tags.length) tags.push('基本');
+  return [...new Set(tags)];
+}
+function skillMastery(id){
+  const m=S.skillMastery[id] || {uses:0,level:1};
+  let level=1;
+  for(let i=1;i<MASTERY_THRESHOLDS.length;i++) if(m.uses>=MASTERY_THRESHOLDS[i]) level=i+1;
+  return {uses:m.uses||0,level:Math.min(5,level)};
+}
+function masteryNextText(id){
+  const m=skillMastery(id);
+  if(m.level>=5) return '熟練MAX';
+  return `次まで${fmt(MASTERY_THRESHOLDS[m.level]-m.uses)}回`;
+}
+function recordSkillUse(id){
+  const before=skillMastery(id).level;
+  const raw=S.skillMastery[id] || {uses:0,level:1};
+  raw.uses=(raw.uses||0)+1;
+  S.skillMastery[id]=raw;
+  const after=skillMastery(id).level;
+  if(after>before) blog(`${SKILLS[id].name}の熟練度が${after}へ上昇！ 威力と気力効率が高まった。`,'result');
+}
+function skillKiCost(sk){
+  const base=sk.ki||0, lv=skillMastery(sk.id).level;
+  return Math.max(0,base-Math.max(0,lv-2));
+}
+function activeSynergies(){
+  const ids=[...usableSkillIds('active'),...usableSkillIds('passive')];
+  const counts={};
+  for(const id of ids) for(const tag of inferredSkillTags(SKILLS[id])) counts[tag]=(counts[tag]||0)+1;
+  return SYNERGIES.filter(s=>(counts[s.tag]||0)>=s.need);
+}
+function swordRankIndex(){
+  const clears=S.clearedAreas.length;
+  if(clears>=6 && isFinalClass(S.classId)) return 6;
+  return Math.min(5,clears);
+}
+function swordRankName(){ return SWORD_RANKS[swordRankIndex()]; }
+function areaUnlocked(id){
+  const idx=AREAS.findIndex(a=>a.id===id);
+  return idx<=0 || S.clearedAreas.includes(AREAS[idx-1].id);
+}
+function bossUnlocked(id){ return areaUnlocked(id) && (S.areaWins[id]||0)>=3; }
+function bondBonusPct(){
+  const mentor=S.social.mentor ? Math.min(2.5,(S.social.mentor.level||0)*.025) : 0;
+  const legacy=Math.min(2.5,S.social.disciples.reduce((a,d)=>a+(d.level||0)*.005,0));
+  return Math.min(5,mentor+legacy);
+}
 function classResource(cls){
   return {
     iai:'draw', nitou:'combo', daitou:'destroy', magi:'mana',
@@ -1017,11 +1162,10 @@ function canChangeClass(id){
   return true;
 }
 function usableSkillIds(type){
-  const inherited = type === 'active' ? S.ui.inheritActive : S.ui.inheritPassive;
-  return S.learned.filter(id => {
-    const sk = SKILLS[id];
-    return sk && sk.type === type && (sk.cls === S.classId || inherited.includes(id));
-  });
+  if(type==='passive') return S.ui.passiveLoadout.filter(id=>hasSkill(id)&&SKILLS[id]&&SKILLS[id].type==='passive');
+  const ids=S.ui.activeLoadout.filter(id=>hasSkill(id)&&SKILLS[id]&&SKILLS[id].type==='active'&&!isUltimateSkill(SKILLS[id]));
+  if(S.ui.ultimateLoadout && hasSkill(S.ui.ultimateLoadout)) ids.push(S.ui.ultimateLoadout);
+  return ids;
 }
 function canLearnSkill(sk){
   if(!sk) return false;
@@ -1032,6 +1176,11 @@ function canLearnSkill(sk){
 }
 function save(){
   try{
+    if(S.name){
+      if(!S.online.userId) S.online.userId='local_'+uid();
+      S.online.seasonId=SEASON_ID;
+      S.online.defenseSnapshot=buildDefenseSnapshot();
+    }
     const data = Object.assign({}, S);
     delete data.battle;
     data.rankingLoading = false;
@@ -1048,12 +1197,27 @@ function load(){
     S.stats = Object.assign({}, def.stats, d.stats || {});
     S.equip = Object.assign({}, def.equip, d.equip || {});
     S.ui = Object.assign({}, def.ui, d.ui || {});
+    S.social = Object.assign({}, def.social, d.social || {});
+    S.online = Object.assign({}, def.online, d.online || {});
+    if(!Array.isArray(S.clearedAreas)) S.clearedAreas=[];
+    S.areaWins=Object.assign({},d.areaWins||{});
+    S.skillMastery=Object.assign({},d.skillMastery||{});
+    if(!Array.isArray(S.social.disciples)) S.social.disciples=[];
     if(!Array.isArray(S.ui.inheritActive)) S.ui.inheritActive = [];
     if(!Array.isArray(S.ui.inheritPassive)) S.ui.inheritPassive = [];
     S.ui.inheritActive = S.ui.inheritActive.filter(id => SKILLS[id] && SKILLS[id].type === 'active').slice(0,2);
     S.ui.inheritPassive = S.ui.inheritPassive.filter(id => SKILLS[id] && SKILLS[id].type === 'passive').slice(0,2);
     if(!Array.isArray(S.learned)) S.learned = [];
     if(!Array.isArray(S.inventory)) S.inventory = [];
+    for(const item of [...S.inventory,...Object.values(S.equip).filter(Boolean)]) if(item.enhance==null) item.enhance=0;
+    if(!Array.isArray(S.ui.activeLoadout)) S.ui.activeLoadout=[];
+    if(!Array.isArray(S.ui.passiveLoadout)) S.ui.passiveLoadout=[];
+    S.ui.activeLoadout=S.ui.activeLoadout.filter(id=>SKILLS[id]&&hasSkill(id)&&!isUltimateSkill(SKILLS[id])).slice(0,4);
+    S.ui.passiveLoadout=S.ui.passiveLoadout.filter(id=>SKILLS[id]&&hasSkill(id)&&SKILLS[id].type==='passive').slice(0,4);
+    if(!S.ui.ultimateLoadout || !SKILLS[S.ui.ultimateLoadout] || !hasSkill(S.ui.ultimateLoadout)) S.ui.ultimateLoadout=null;
+    if(!S.ui.activeLoadout.length) S.ui.activeLoadout=S.learned.filter(id=>SKILLS[id]&&SKILLS[id].type==='active'&&!isUltimateSkill(SKILLS[id])&&SKILLS[id].cls===S.classId).slice(0,4);
+    if(!S.ui.passiveLoadout.length) S.ui.passiveLoadout=S.learned.filter(id=>SKILLS[id]&&SKILLS[id].type==='passive'&&SKILLS[id].cls===S.classId).slice(0,4);
+    if(!S.ui.ultimateLoadout) S.ui.ultimateLoadout=S.learned.find(id=>SKILLS[id]&&isUltimateSkill(SKILLS[id])&&SKILLS[id].cls===S.classId)||null;
     if(!S.classPath){
       if(ADVANCED_CLASSES.includes(S.classId)) S.classPath = S.classId;
       const parent = FINAL_CLASS_FROM[S.classId];
@@ -1061,6 +1225,7 @@ function load(){
     }
     S.battle = null;
     S.rankingLoading = false;
+    S.rankingData = null;
     if(S.screen === 'battle') S.screen = 'adventure';
     return true;
   }catch(e){
@@ -1096,8 +1261,10 @@ const MockServer = {
         id:'npc' + (i+1),
         name:names[i % names.length],
         title:titles[Math.floor(Math.random()*titles.length)],
+        classId:CLASS_ORDER[(i%7)+1],
         rating:Math.max(0, Math.floor(1000 + (i-5)*65 + Math.random()*80 - 40)),
-        level:Math.max(1, Math.floor((playerLevel || 1) * (0.8 + i*0.05)))
+        level:Math.max(1, Math.floor((playerLevel || 1) * (0.8 + i*0.05))),
+        power:Math.max(100,Math.floor((playerLevel||1)*500*(.7+i*.07))),seasonId:SEASON_ID
       });
     }
     return arr;
@@ -1111,6 +1278,9 @@ const MockServer = {
     }
     db.npcs.forEach((n,i) => {
       n.level = Math.max(1, Math.floor(player.level * (0.85 + (i % 5)*0.08)));
+      n.power=Math.max(100,Math.floor(player.power*(.72+i*.055)));
+      n.seasonId=SEASON_ID;
+      n.defenseSnapshot={schemaVersion:1,userId:n.id,seasonId:SEASON_ID,classId:n.classId||'kenshi',level:n.level,power:n.power,rating:n.rating,aiMode:'defense'};
     });
     const entries = [
       ...db.npcs,
@@ -1120,10 +1290,15 @@ const MockServer = {
         title:CLASSES[player.classId].name,
         level:player.level,
         rating:player.rating,
+        power:player.power,
+        seasonId:SEASON_ID,
         isPlayer:true
       }
-    ].sort((a,b) => b.rating - a.rating);
-    return {top:entries.slice(0,20), updatedAt:db.updatedAt};
+    ];
+    return {
+      pvp:[...entries].sort((a,b)=>b.rating-a.rating).slice(0,20),
+      power:[...entries].sort((a,b)=>b.power-a.power).slice(0,20),updatedAt:db.updatedAt,seasonId:SEASON_ID
+    };
   },
   async submitBattle(report){
     await this.delay();
@@ -1154,7 +1329,14 @@ function getPassiveBonuses(){
       if(p.hasOwnProperty(key)) p[key] += sk.passive[key];
     }
   }
+  for(const syn of activeSynergies()){
+    for(const [key,value] of Object.entries(syn.bonus)) if(p.hasOwnProperty(key)) p[key]+=value;
+  }
   return p;
+}
+function itemValue(item,key){
+  const base=item && item[key] ? item[key] : 0;
+  return Math.floor(base*(1+(item.enhance||0)*.12));
 }
 function getEquipBonuses(){
   const b = {
@@ -1165,7 +1347,7 @@ function getEquipBonuses(){
     const item = S.equip[slot];
     if(!item) continue;
     for(const key of Object.keys(b)){
-      if(item[key]) b[key] += item[key];
+      if(item[key]) b[key] += itemValue(item,key);
     }
   }
   return b;
@@ -1175,11 +1357,12 @@ function getDerived(){
   const p = getPassiveBonuses();
   const eq = getEquipBonuses();
 
-  const maxHP = Math.floor((60 + S.level*12 + S.stats.vit*14) * cls.hp * (1 + p.hpPct/100)) + eq.hp;
+  const bond=1+bondBonusPct()/100;
+  const maxHP = Math.floor((Math.floor((60 + S.level*12 + S.stats.vit*14) * cls.hp * (1 + p.hpPct/100)) + eq.hp)*bond);
   const maxKI = Math.floor(30 + S.stats.ki*4 + S.level*2 + p.kiMax + eq.ki);
-  const attack = Math.floor((S.stats.str*2 + S.stats.tec*0.7 + eq.atk) * cls.atk * (1 + p.atkPct/100));
-  const defense = Math.floor((S.stats.def*1.6 + S.stats.vit*0.6 + eq.def) * cls.def * (1 + p.defPct/100));
-  const speed = Math.floor((S.stats.agi*2 + S.stats.foc*0.4 + eq.spd + S.level*0.2) * cls.spd * (1 + p.spdPct/100));
+  const attack = Math.floor((S.stats.str*2 + S.stats.tec*0.7 + eq.atk) * cls.atk * (1 + p.atkPct/100)*bond);
+  const defense = Math.floor((S.stats.def*1.6 + S.stats.vit*0.6 + eq.def) * cls.def * (1 + p.defPct/100)*bond);
+  const speed = Math.floor((S.stats.agi*2 + S.stats.foc*0.4 + eq.spd + S.level*0.2) * cls.spd * (1 + p.spdPct/100)*bond);
   const crit = Math.floor(5 + S.stats.luk*0.25 + S.stats.tec*0.1 + eq.crit + p.crit);
   const dodge = Math.min(55, Math.floor(S.stats.agi*0.18 + S.stats.luk*0.08 + eq.dodge + p.dodge));
   const skillPower = (1 + S.stats.foc*0.008 + (p.skillPct + eq.skillPct)/100) * cls.skill;
@@ -1191,6 +1374,20 @@ function getDerived(){
     pvpBonus:p.pvp + eq.pvp + S.stats.pre*0.15,
     expBonus:p.expBonus + eq.expBonus,
     goldBonus:p.goldBonus + eq.goldBonus
+  };
+}
+function getCombatPower(){
+  const d=getDerived();
+  const mastery=Object.keys(S.skillMastery).reduce((a,id)=>a+skillMastery(id).level,0);
+  return Math.floor(d.maxHP*.35+d.attack*9+d.defense*7+d.speed*5+d.crit*30+d.dodge*25+d.maxKI*2+mastery*12+S.level*80);
+}
+function buildDefenseSnapshot(){
+  return {
+    schemaVersion:1,userId:S.online.userId,seasonId:SEASON_ID,name:S.name,classId:S.classId,
+    level:S.level,rating:S.rating,power:getCombatPower(),stats:{...S.stats},
+    loadout:{active:[...S.ui.activeLoadout],passive:[...S.ui.passiveLoadout],ultimate:S.ui.ultimateLoadout},
+    equip:['weapon','armor','accessory'].map(slot=>S.equip[slot]?{slot,name:S.equip[slot].name,rarity:S.equip[slot].rarity,level:S.equip[slot].level,enhance:S.equip[slot].enhance||0}:null),
+    swordRank:swordRankName(),bondBonus:bondBonusPct(),updatedAt:Date.now()
   };
 }
 
@@ -1227,6 +1424,7 @@ function generateItem(level, rarity=null, boss=false){
   const budget = Math.max(1, Math.floor(level * mult));
   const item = {
     id:uid(), slot, rarity, level,
+    enhance:0,
     name:makeItemName(slot, rarity),
     atk:0, def:0, hp:0, spd:0, crit:0, dodge:0, ki:0,
     lifesteal:0, skillPct:0, pvp:0,
@@ -1252,18 +1450,19 @@ function generateItem(level, rarity=null, boss=false){
 }
 function itemStatsText(item){
   const arr = [];
-  if(item.atk) arr.push(`攻撃+${fmt(item.atk)}`);
-  if(item.def) arr.push(`防御+${fmt(item.def)}`);
-  if(item.hp) arr.push(`HP+${fmt(item.hp)}`);
-  if(item.spd) arr.push(`速さ+${fmt(item.spd)}`);
-  if(item.crit) arr.push(`会心+${fmt(item.crit)}%`);
-  if(item.dodge) arr.push(`回避+${fmt(item.dodge)}%`);
-  if(item.ki) arr.push(`気力+${fmt(item.ki)}`);
-  if(item.lifesteal) arr.push(`吸血+${fmt(item.lifesteal)}%`);
-  if(item.skillPct) arr.push(`スキル+${fmt(item.skillPct)}%`);
-  if(item.pvp) arr.push(`PVP+${fmt(item.pvp)}%`);
+  if(item.atk) arr.push(`攻撃+${fmt(itemValue(item,'atk'))}`);
+  if(item.def) arr.push(`防御+${fmt(itemValue(item,'def'))}`);
+  if(item.hp) arr.push(`HP+${fmt(itemValue(item,'hp'))}`);
+  if(item.spd) arr.push(`速さ+${fmt(itemValue(item,'spd'))}`);
+  if(item.crit) arr.push(`会心+${fmt(itemValue(item,'crit'))}%`);
+  if(item.dodge) arr.push(`回避+${fmt(itemValue(item,'dodge'))}%`);
+  if(item.ki) arr.push(`気力+${fmt(itemValue(item,'ki'))}`);
+  if(item.lifesteal) arr.push(`吸血+${fmt(itemValue(item,'lifesteal'))}%`);
+  if(item.skillPct) arr.push(`スキル+${fmt(itemValue(item,'skillPct'))}%`);
+  if(item.pvp) arr.push(`PVP+${fmt(itemValue(item,'pvp'))}%`);
   return arr.join(' / ') || '効果なし';
 }
+function enhanceCost(item){ return Math.floor(120*Math.pow((item.enhance||0)+1,2)*Math.max(1,item.level/5)); }
 
 function makeEnemy(areaId){
   const area = AREAS.find(a => a.id === areaId) || AREAS[0];
@@ -1285,12 +1484,27 @@ function makeEnemy(areaId){
 
   return {
     name, level:lvl, maxHP, hp:maxHP, atk, def, speed, exp, gold,
-    isPvp:false, boss, rating:0, opponentId:null, skills:makeEnemySkills(name,boss)
+    isPvp:false, boss, fixedBoss:false, areaId:area.id, dropRate:area.dropRate,
+    rating:0, opponentId:null, skills:makeEnemySkills(name,boss)
+  };
+}
+function makeAreaBoss(areaId){
+  const area=AREAS.find(a=>a.id===areaId)||AREAS[0];
+  const spec=AREA_BOSSES[area.id];
+  const lvl=Math.max(5,Math.floor(S.level*area.mult));
+  const power=spec.power;
+  const maxHP=Math.floor((100+lvl*30)*power*area.mult);
+  return {
+    name:`【${spec.title}】${spec.name}`,level:lvl,maxHP,hp:maxHP,
+    atk:Math.floor((12+lvl*5)*power),def:Math.floor((8+lvl*3.2)*power),speed:Math.floor((10+lvl*2.2)*Math.min(1.4,power)),
+    exp:Math.floor((100+lvl*80)*power),gold:spec.rewardGold,isPvp:false,boss:true,fixedBoss:true,
+    areaId:area.id,dropRate:1,rating:0,opponentId:null,skills:makeEnemySkills(spec.name,true)
   };
 }
 function makePvpEnemy(op){
   const lvl = Math.max(1, op.level || Math.floor(S.level * (0.9 + Math.random()*0.25)));
-  const factor = Math.max(0.8, Math.min(1.7, 1 + ((op.rating - S.rating) / 2500)));
+  const powerRatio=(op.power||getCombatPower())/Math.max(1,getCombatPower());
+  const factor = Math.max(0.7, Math.min(2.0, (1 + ((op.rating - S.rating) / 2500))*Math.pow(powerRatio,.25)));
   const maxHP = Math.floor((60 + lvl*20) * factor * (1 + Math.min(3, lvl*0.015)));
   const atk = Math.floor((10 + lvl*4.3) * factor);
   const def = Math.floor((6 + lvl*2.7) * factor);
@@ -1302,7 +1516,7 @@ function makePvpEnemy(op){
     name:`${op.name}（${op.title}）`,
     level:lvl, maxHP, hp:maxHP, atk, def, speed, exp, gold,
     isPvp:true, boss:false, rating:op.rating, opponentId:op.id,
-    skills:makeEnemySkills(op.title || op.name,false)
+    power:op.power||0,defenseAI:true,seasonId:SEASON_ID,skills:makeEnemySkills(op.title || op.name,false)
   };
 }
 
@@ -1335,6 +1549,7 @@ function initBattle(enemy, isPvp, opponentId){
       freeze:0
     },
     enemyDebuffs:{atk:0, def:0, spd:0, turns:0},
+    enemyIntent:rollEnemyIntent(enemy),
     playerDefending:false,
     log:[],
     over:false,
@@ -1349,6 +1564,8 @@ function initBattle(enemy, isPvp, opponentId){
   const cls = CLASSES[S.classId];
   blog(`${cls.name}の構え――${classStanceLine(S.classId)}`,'stance');
   for(const line of swordProfileLines(d)) blog(line,'stat');
+  if(activeSynergies().length) blog(`ビルドシナジー発動：${activeSynergies().map(s=>s.name).join('／')}`,'result');
+  if(bondBonusPct()>0) blog(`師弟の剣縁が力を巡らせる。全戦闘能力+${bondBonusPct().toFixed(2)}%。`,'stat');
   if(S.stats.pre >= enemy.level + 5){
     S.battle.enemyDebuffs.atk = Math.max(S.battle.enemyDebuffs.atk,10);
     S.battle.enemyDebuffs.turns = 3;
@@ -1395,7 +1612,7 @@ function enemySpeed(b){
 function skillUsable(sk){
   const b = S.battle;
   if(!b || !sk || sk.type !== 'active') return false;
-  if(sk.ki > b.playerKI) return false;
+  if(skillKiCost(sk) > b.playerKI) return false;
   if(sk.hpCost){
     const cost = Math.floor(b.maxHP * sk.hpCost / 100);
     if(b.playerHP <= cost + 1) return false;
@@ -1416,7 +1633,7 @@ function dealPlayerHits(d, sk, stackBonus, name){
       continue;
     }
 
-    let power = (sk.power || 1) + stackBonus;
+    let power = ((sk.power || 1) + stackBonus) * (1+(skillMastery(sk.id).level-1)*.03);
     if(sk.lowHpBoost && b.playerHP < b.maxHP*0.3){
       power *= 1.5;
       blog(`体力が尽きかけても剣先は下がらない。精神力${fmt(S.stats.men)}が窮地を力へ変える！`,'stat');
@@ -1472,7 +1689,8 @@ function useSkillById(id, d){
 
   const fx = sk.fx || {};
 
-  if(sk.ki) b.playerKI -= sk.ki;
+  const actualKiCost=skillKiCost(sk);
+  if(actualKiCost) b.playerKI -= actualKiCost;
   if(sk.hpCost){
     const cost = Math.floor(b.maxHP * sk.hpCost / 100);
     b.playerHP -= cost;
@@ -1567,6 +1785,8 @@ function useSkillById(id, d){
     dealPlayerHits(d, sk, stackBonus, sk.name);
   }
 
+  recordSkillUse(id);
+
   return true;
 }
 function enemyTurn(d){
@@ -1576,15 +1796,18 @@ function enemyTurn(d){
   if(b.enemyStatuses.stun > 0){
     blog(`${b.enemy.name}は崩された構えを戻せず、剣を振れない！`,'enemy');
     b.enemyStatuses.stun--;
+    b.enemyIntent=rollEnemyIntent(b.enemy);
     return;
   }
   if(b.enemyStatuses.freeze > 0 && chance(25)){
     blog(`凍結した関節が軋み、${b.enemy.name}の攻撃が止まる！`,'enemy');
+    b.enemyIntent=rollEnemyIntent(b.enemy);
     return;
   }
   if(b.statuses.dodgeNext){
     b.statuses.dodgeNext = false;
     blog(`心眼が捉えた未来どおり半歩だけ退く。敵の刃は虚空を斬った！`,'defense');
+    b.enemyIntent=rollEnemyIntent(b.enemy);
     return;
   }
 
@@ -1594,22 +1817,17 @@ function enemyTurn(d){
       ? `素早さ${fmt(S.stats.agi)}の足捌き。刃が届く寸前に間合いの外へ消える！`
       : `技${fmt(S.stats.tec)}で剣先の起こりを読み、最小の動きでかわした！`;
     blog(dodgeLine,'stat');
+    b.enemyIntent=rollEnemyIntent(b.enemy);
     return;
   }
 
-  const useEnemySkill = Array.isArray(b.enemy.skills) && chance(b.enemy.boss ? 62 : 42);
-  let move;
+  const intent=b.enemyIntent||rollEnemyIntent(b.enemy);
+  const useEnemySkill=intent.isSkill;
+  const move=intent.move;
   if(useEnemySkill){
-    move = choice(b.enemy.skills);
     blog(`◆ ${move.name} ◆`,'enemySkill');
     blog(move.text,'enemySkill');
   }else{
-    move = choice([
-      {name:'踏み込み斬り',power:1.0,text:'敵は間合いを詰め、肩口へ鋭く斬り下ろす！'},
-      {name:'逆袈裟',power:1.12,text:'低い姿勢から刃が跳ね上がり、逆袈裟に襲いかかる！'},
-      {name:'牽制突き',power:.82,text:'視線を散らす小さな動きから、喉元へ真っ直ぐな突き！'},
-      {name:'渾身斬り',power:1.38,text:'大きく息を吐き、全体重を乗せた斬撃を振り抜く！'}
-    ]);
     blog(`${b.enemy.name}の${move.name}！`,'enemy');
     blog(move.text,'enemy');
   }
@@ -1666,6 +1884,7 @@ function enemyTurn(d){
       blog(`敵の刃を受けた瞬間、反射の剣が走る！ ${fmt(ref)}反撃ダメージ！`,'tech');
     }
   }
+  b.enemyIntent=rollEnemyIntent(b.enemy);
 }
 function endRound(d){
   const b = S.battle;
@@ -1855,7 +2074,20 @@ function victory(){
   S.gold += goldGain;
   blog(`経験値+${fmt(expGain)} / ゴールド+${fmt(goldGain)}`);
 
-  const dropBase = b.isPvp ? 0.25 : 0.35 + S.stats.luk*0.002 + (b.enemy.boss ? 0.35 : 0);
+  const rankBefore=swordRankIndex();
+  if(!b.isPvp && b.enemy.areaId && !b.enemy.fixedBoss){
+    S.areaWins[b.enemy.areaId]=(S.areaWins[b.enemy.areaId]||0)+1;
+  }
+  if(b.enemy.fixedBoss && !S.clearedAreas.includes(b.enemy.areaId)){
+    S.clearedAreas.push(b.enemy.areaId);
+    const spec=AREA_BOSSES[b.enemy.areaId];
+    S.sp+=spec.rewardSp;
+    blog(`${spec.title}を制覇！ 初回報酬SP+${spec.rewardSp}。次の修練地が解放された。`,'result');
+  }
+  const rankAfter=swordRankIndex();
+  if(rankAfter>rankBefore) blog(`段位昇格――「${SWORD_RANKS[rankAfter]}」に認められた！`,'result');
+
+  const dropBase = b.isPvp ? 0.25 : Math.min(.98,(b.enemy.dropRate||.35) + S.stats.luk*0.002 + (b.enemy.boss ? 0.20 : 0));
   if(Math.random() < dropBase){
     if(S.inventory.length < 60){
       const item = generateItem(b.enemy.level, b.enemy.boss ? (chance(30) ? 'epic' : 'rare') : null, b.enemy.boss);
@@ -1869,6 +2101,11 @@ function victory(){
   if(Math.random() < 0.08){
     S.sp += 1;
     blog('謎の老人が現れた。「良い剣筋だ」 SP+1！');
+  }
+  if(S.social.disciples.length && chance(25)){
+    const disciple=choice(S.social.disciples);
+    disciple.exp=(disciple.exp||0)+1;
+    if(disciple.exp>=3){ disciple.exp=0; disciple.level++; S.social.bondPoints++; blog(`弟子の${disciple.name}が修練から学び、Lv${disciple.level}へ成長。師弟ポイント+1。`,'result'); }
   }
 
   if(b.isPvp){
@@ -1913,6 +2150,15 @@ function defeat(){
 
   save();
   render();
+}
+
+function mentorCandidates(){
+  const data=[['master_iai','月影宗十郎','mumei',18],['master_nitou','双葉サヤ','souten',16],['master_dai','巌王ガンジ','hajou',20],['master_magi','緋月レナ','madou',17],['master_sei','白盾アルマ','seigo',19],['master_ju','冥刃クロウ','meiju',21],['master_ken','無名の老剣士','kensei',25]];
+  return data.map(([id,name,classId,plus])=>({id,name,classId,level:Math.max(20,S.level+plus),power:Math.max(5000,getCombatPower()+plus*900)}));
+}
+function discipleCandidates(){
+  const names=['ハル','ナギ','トワ','スズ','カイ','ユラ','シン','ミナト','アオイ','レツ','ユキ','コウ'];
+  return names.map((name,i)=>({id:`disciple_${i+1}`,name,classId:CLASS_ORDER[i%7],level:Math.max(1,Math.floor(S.level*(.25+(i%5)*.08))),exp:0,masterId:S.online.userId}));
 }
 
 const G = {
@@ -1972,6 +2218,33 @@ const G = {
     save();
     render();
   },
+  chooseMentor(id){
+    const candidate=mentorCandidates().find(x=>x.id===id);
+    if(!candidate) return;
+    if(S.social.mentor && Date.now()<S.social.changeAvailableAt){ S.message='師匠の変更には7日間の待機期間があります。'; render(); return; }
+    if(!confirm(`${candidate.name}を師匠に選びますか？`)) return;
+    S.social.mentor=candidate;
+    S.social.changeAvailableAt=Date.now()+7*24*60*60*1000;
+    S.message=`${candidate.name}に師事した。剣縁が隠し能力として宿る。`;
+    save(); render();
+  },
+  releaseMentor(){
+    if(!S.social.mentor || Date.now()<S.social.changeAvailableAt) return;
+    if(!confirm('現在の師匠との契約を解除しますか？')) return;
+    S.social.mentor=null; S.message='師匠との契約を解除した。'; save(); render();
+  },
+  takeDisciple(id){
+    if(S.social.disciples.length>=10){ S.message='弟子は10人までです。'; render(); return; }
+    if(S.social.disciples.some(x=>x.id===id)) return;
+    const d=discipleCandidates().find(x=>x.id===id);
+    if(!d) return;
+    S.social.disciples.push(d); S.message=`${d.name}を弟子に迎えた。`;
+    save(); render();
+  },
+  dismissDisciple(id){
+    S.social.disciples=S.social.disciples.filter(x=>x.id!==id);
+    S.message='弟子との契約を解除した。'; save(); render();
+  },
   setSkillClass(cls){
     S.ui.skillClass = cls;
     const first = Object.values(SKILLS).find(s => s.cls === cls);
@@ -1987,9 +2260,27 @@ const G = {
     if(!canLearnSkill(sk)) return;
     S.sp -= sk.sp;
     S.learned.push(id);
+    if(isUltimateSkill(sk) && !S.ui.ultimateLoadout) S.ui.ultimateLoadout=id;
+    else if(sk.type==='active' && S.ui.activeLoadout.length<4) S.ui.activeLoadout.push(id);
+    else if(sk.type==='passive' && S.ui.passiveLoadout.length<4) S.ui.passiveLoadout.push(id);
     S.message = `${sk.name}を習得した！`;
     save();
     render();
+  },
+  toggleLoadout(id){
+    const sk=SKILLS[id];
+    if(!sk||!hasSkill(id)) return;
+    const allowed=sk.cls===S.classId || S.ui.inheritActive.includes(id) || S.ui.inheritPassive.includes(id);
+    if(!allowed){ S.message='他職スキルは先に継承枠へ装備してください。'; render(); return; }
+    if(isUltimateSkill(sk)){
+      S.ui.ultimateLoadout=S.ui.ultimateLoadout===id?null:id;
+    }else{
+      const key=sk.type==='active'?'activeLoadout':'passiveLoadout',limit=4,list=S.ui[key],idx=list.indexOf(id);
+      if(idx>=0) list.splice(idx,1);
+      else if(list.length<limit) list.push(id);
+      else { S.message=`${sk.type==='active'?'アクティブ':'パッシブ'}装備枠は4個まで。`; render(); return; }
+    }
+    save(); render();
   },
   toggleInheritSkill(id){
     const sk = SKILLS[id];
@@ -1999,6 +2290,8 @@ const G = {
     const idx = list.indexOf(id);
     if(idx >= 0){
       list.splice(idx, 1);
+      S.ui.activeLoadout=S.ui.activeLoadout.filter(x=>x!==id);
+      S.ui.passiveLoadout=S.ui.passiveLoadout.filter(x=>x!==id);
       S.message = `${sk.name}を継承枠から外した。`;
     }else if(list.length < 2){
       list.push(id);
@@ -2018,6 +2311,9 @@ const G = {
     S.ui.inheritPassive = S.ui.inheritPassive.filter(skillId => SKILLS[skillId] && SKILLS[skillId].cls !== id).slice(0,2);
     S.ui.skillClass = id;
     S.ui.selectedSkill = null;
+    S.ui.activeLoadout=S.learned.filter(skillId=>SKILLS[skillId]&&SKILLS[skillId].cls===id&&SKILLS[skillId].type==='active'&&!isUltimateSkill(SKILLS[skillId])).slice(0,4);
+    S.ui.passiveLoadout=S.learned.filter(skillId=>SKILLS[skillId]&&SKILLS[skillId].cls===id&&SKILLS[skillId].type==='passive').slice(0,4);
+    S.ui.ultimateLoadout=S.learned.find(skillId=>SKILLS[skillId]&&SKILLS[skillId].cls===id&&isUltimateSkill(SKILLS[skillId]))||null;
     S.message = `${CLASSES[id].name}に転職した！`;
     save();
     render();
@@ -2060,21 +2356,38 @@ const G = {
     save();
     render();
   },
+  enhanceItem(slot){
+    const item=S.equip[slot];
+    if(!item || (item.enhance||0)>=20) return;
+    const cost=enhanceCost(item);
+    if(S.gold<cost){ S.message=`強化に${fmt(cost)}G必要です。`; render(); return; }
+    S.gold-=cost; item.enhance=(item.enhance||0)+1;
+    S.message=`${item.name}を+${item.enhance}へ強化した！ 全能力+${item.enhance*12}%相当。`;
+    save(); render();
+  },
   startBattle(areaId){
+    if(!areaUnlocked(areaId)) return;
     const enemy = makeEnemy(areaId);
     initBattle(enemy, false, null);
     S.screen = 'battle';
     render();
   },
+  startBoss(areaId){
+    if(!bossUnlocked(areaId) || S.clearedAreas.includes(areaId)) return;
+    initBattle(makeAreaBoss(areaId),false,null);
+    S.screen='battle';
+    render();
+  },
   startPvp(id){
     if(!S.rankingData) return;
-    const op = S.rankingData.find(e => e.id === id);
+    const op = S.rankingData.pvp.find(e => e.id === id);
     if(!op || op.isPlayer) return;
     const enemy = makePvpEnemy(op);
     initBattle(enemy, true, op.id);
     S.screen = 'battle';
     render();
   },
+  setRankingMode(mode){ S.ui.rankingMode=mode; save(); render(); },
   attack(){
     if(!canAct()) return;
     performAction({type:'attack'});
@@ -2106,10 +2419,11 @@ const G = {
       name:S.name,
       classId:S.classId,
       level:S.level,
-      rating:S.rating
+      rating:S.rating,
+      power:getCombatPower()
     }).then(res => {
       if(S.screen !== 'ranking') return;
-      S.rankingData = res.top;
+      S.rankingData = res;
       S.rankingLoading = false;
       render();
     }).catch(() => {
@@ -2133,8 +2447,8 @@ window.G = G;
 function titleView(){
   return `
   <div class="panel center">
-    <h1 class="title">剣の達人への道 剣戟演出版</h1>
-    <p class="subtitle">剣格反映ログ／敵固有剣技／全技演出説明／14職業／最終職分岐</p>
+    <h1 class="title">剣の達人への道 無限修練版</h1>
+    <p class="subtitle">段位／予兆と見切り／固定ボス／熟練度／100スキル／装備強化／師弟／非同期PVP準備</p>
     <div class="flex" style="justify-content:center;margin-top:14px">
       <button class="primary" onclick="G.toCreate()">新しく始める</button>
       ${S.name ? `<button onclick="G.nav('adventure')">続きから（${esc(S.name)}）</button>` : ''}
@@ -2180,6 +2494,8 @@ function headerView(){
       <b>${esc(S.name)}</b>
       <span class="pill">${CLASSES[S.classId].name}</span>
       <span class="pill">Lv ${fmt(S.level)}</span>
+      <span class="pill good">${swordRankName()}</span>
+      <span class="pill">戦闘力 ${fmt(getCombatPower())}</span>
       <span class="pill gold">Gold ${fmt(S.gold)}</span>
       <span class="pill">Rate ${fmt(S.rating)}</span>
     </div>
@@ -2195,6 +2511,7 @@ function navView(){
     ['skills','スキルツリー'],
     ['equip','装備'],
     ['class','職業'],
+    ['social','師弟'],
     ['ranking','PVP'],
     ['story','物語'],
     ['settings','設定']
@@ -2209,18 +2526,24 @@ function adventureView(){
   return `
   <div class="panel">
     <h2>冒険</h2>
+    <div class="card"><b>段位：${swordRankName()}</b>　<span class="pill">総合戦闘力 ${fmt(getCombatPower())}</span><div class="small">第一目標：六つの主を制し「剣極」へ。到達後も無限成長し、総合戦闘力とシーズンPVPの両ランキング頂点を目指す。</div></div>
     <div class="bar exp"><div style="width:${expPercent()}%"></div></div>
     <div class="small">EXP ${fmt(S.exp)} / ${fmt(expNeeded(S.level))} / 残りポイント ${fmt(S.statPoints)} / SP ${fmt(S.sp)}</div>
     ${S.message ? `<p class="good">${esc(S.message)}</p>` : ''}
     <div class="grid wide">
-      ${AREAS.map(a => `
-        <div class="card">
+      ${AREAS.map(a => {
+        const unlocked=areaUnlocked(a.id),cleared=S.clearedAreas.includes(a.id),wins=S.areaWins[a.id]||0;
+        return `
+        <div class="card ${cleared?'learned':''}" style="${unlocked?'':'opacity:.45'}">
           <b>${a.name}</b>
+          <span class="pill ${cleared?'good':''}">${cleared?'制覇済み':unlocked?'修練可能':'未解放'}</span>
           <div class="small">目安Lv ${fmt(Math.max(1, Math.floor(S.level*a.mult)))} / ドロップ傾向 ${Math.round(a.dropRate*100)}%</div>
           <div class="small">出現：${a.enemies.slice(0,3).join('、')} ほか</div>
-          <button onclick="G.startBattle('${a.id}')">出撃</button>
-        </div>
-      `).join('')}
+          <div class="small">主への挑戦条件：通常戦3勝（${Math.min(3,wins)}/3）</div>
+          <div class="flex"><button onclick="G.startBattle('${a.id}')" ${unlocked?'':'disabled'}>修練へ出撃</button>
+          <button class="primary" onclick="G.startBoss('${a.id}')" ${bossUnlocked(a.id)&&!cleared?'':'disabled'}>${cleared?'主を撃破済み':'主に挑む'}</button></div>
+        </div>`;
+      }).join('')}
     </div>
   </div>`;
 }
@@ -2246,6 +2569,7 @@ function statusView(){
 
     <div class="card" style="margin-top:10px">
       <b>現在の戦闘能力</b>
+      <div><span class="pill good">段位 ${swordRankName()}</span><span class="pill">総合戦闘力 ${fmt(getCombatPower())}</span><span class="pill">剣縁 +${bondBonusPct().toFixed(2)}%</span></div>
       <div class="small">
         HP ${fmt(d.maxHP)} / 気力 ${fmt(d.maxKI)} / 攻撃 ${fmt(d.attack)} / 防御 ${fmt(d.defense)} /
         速さ ${fmt(d.speed)} / 会心 ${fmt(d.crit)}% / 回避 ${fmt(d.dodge)}% /
@@ -2295,7 +2619,7 @@ function skillTreeHtml(cls, selectedId){
   return `
   <div class="treeWrap">
     <div class="tree">
-      <svg width="620" height="410">${lines}</svg>
+      <svg width="620" height="540">${lines}</svg>
       ${nodes}
     </div>
   </div>`;
@@ -2310,11 +2634,20 @@ function skillsView(){
   const reqText = selected.req.length
     ? selected.req.map(id => SKILLS[id] ? SKILLS[id].name : id).join('、')
     : 'なし';
+  const selectedEquipped=selected ? (isUltimateSkill(selected)?S.ui.ultimateLoadout===selected.id:selected.type==='active'?S.ui.activeLoadout.includes(selected.id):S.ui.passiveLoadout.includes(selected.id)) : false;
+  const synergies=activeSynergies();
 
   return `
   <div class="panel">
     <h2>スキルツリー</h2>
     <p class="small">SP：<b class="gold">${fmt(S.sp)}</b> / 現在の職業：${CLASSES[S.classId].name}</p>
+    <div class="card"><b>戦闘ビルド</b>
+      <div class="small">アクティブ ${S.ui.activeLoadout.length}/4：${S.ui.activeLoadout.map(id=>SKILLS[id].name).join('、')||'なし'}</div>
+      <div class="small">パッシブ ${S.ui.passiveLoadout.length}/4：${S.ui.passiveLoadout.map(id=>SKILLS[id].name).join('、')||'なし'}</div>
+      <div class="small">奥義 1枠：${S.ui.ultimateLoadout?SKILLS[S.ui.ultimateLoadout].name:'なし'}</div>
+      <div style="margin-top:5px">${synergies.length?synergies.map(s=>`<span class="pill good">${s.name}</span>`).join(''):'<span class="pill">発動シナジーなし</span>'}</div>
+      ${synergies.map(s=>`<div class="small good">${s.name}：${s.desc}</div>`).join('')}
+    </div>
     <div class="card">
       <b>他職スキル継承枠</b>
       <div class="small">アクティブ ${S.ui.inheritActive.length}/2：${S.ui.inheritActive.map(id => SKILLS[id].name).join('、') || 'なし'}</div>
@@ -2333,14 +2666,16 @@ function skillsView(){
       <div class="card" style="margin-top:12px">
         <div class="flex">
           <b>${selected.name}</b>
-          <span class="pill right">${selected.type === 'active' ? 'アクティブ' : 'パッシブ'} / SP${selected.sp}${selected.ki ? ` / KI${selected.ki}` : ''}${selected.hpCost ? ` / HP${selected.hpCost}%` : ''}</span>
+          <span class="pill right">${isUltimateSkill(selected)?'奥義':selected.type === 'active' ? 'アクティブ' : 'パッシブ'} / SP${selected.sp}${selected.ki ? ` / KI${skillKiCost(selected)}` : ''}${selected.hpCost ? ` / HP${selected.hpCost}%` : ''}</span>
         </div>
         <div class="small">前提：${reqText}</div>
+        <div class="small">タグ：${inferredSkillTags(selected).map(t=>`【${t}】`).join('')}／熟練Lv${skillMastery(selected.id).level}／使用${fmt(skillMastery(selected.id).uses)}回／${masteryNextText(selected.id)}</div>
         <div>${selected.desc}</div>
         <div class="skillFlavor"><b>技のイメージ</b><br>${skillFlavor(selected)}</div>
         <div style="margin-top:8px">
           ${hasSkill(selected.id)
             ? `<span class="good">習得済み</span>
+               <button onclick="G.toggleLoadout('${selected.id}')">${selectedEquipped?'戦闘枠から外す':'戦闘枠に装備'}</button>
                ${S.classId !== selected.cls && !selected.name.startsWith('奥義・')
                  ? `<button onclick="G.toggleInheritSkill('${selected.id}')">${(selected.type === 'active' ? S.ui.inheritActive : S.ui.inheritPassive).includes(selected.id) ? '継承枠から外す' : '継承枠に装備'}</button>`
                  : ''}`
@@ -2370,9 +2705,10 @@ function equipView(){
         <div class="card">
           <b>${label}</b>
           ${item ? `
-            <div class="itemName ${RARITIES[item.rarity].cls}">${item.name}</div>
+            <div class="itemName ${RARITIES[item.rarity].cls}">${item.name} +${item.enhance||0}</div>
             <div class="small">${itemStatsText(item)}</div>
-            <button onclick="G.unequipItem('${slot}')">外す</button>
+            <div class="small">強化成功率100%／次の費用 ${fmt(enhanceCost(item))}G／上限+20</div>
+            <div class="flex"><button class="primary" onclick="G.enhanceItem('${slot}')" ${(item.enhance||0)>=20?'disabled':''}>ゴールド強化</button><button onclick="G.unequipItem('${slot}')">外す</button></div>
           ` : '<div class="small">未装備</div>'}
         </div>`;
       }).join('')}
@@ -2383,7 +2719,7 @@ function equipView(){
       <div class="grid wide">
         ${S.inventory.map(item => `
           <div class="card">
-            <div class="itemName ${RARITIES[item.rarity].cls}">${item.name}</div>
+            <div class="itemName ${RARITIES[item.rarity].cls}">${item.name} +${item.enhance||0}</div>
             <div class="small">${RARITIES[item.rarity].name} / Lv${fmt(item.level)} / ${item.slot === 'weapon' ? '武器' : item.slot === 'armor' ? '防具' : '装飾'}</div>
             <div class="small">${itemStatsText(item)}</div>
             <div class="flex" style="margin-top:6px">
@@ -2425,6 +2761,24 @@ function classView(){
     </div>
   </div>`;
 }
+function socialView(){
+  const mentor=S.social.mentor;
+  const candidates=discipleCandidates().filter(x=>!S.social.disciples.some(d=>d.id===x.id));
+  return `
+  <div class="panel">
+    <h2>師弟</h2>
+    <div class="card"><b>隠しステータス「剣縁」</b><span class="pill right">全戦闘能力+${bondBonusPct().toFixed(2)}%</span>
+      <div class="small">師匠から最大2.5%、弟子の成長から最大2.5%。合計上限5%。将来のオンラインではサーバー側で計算します。</div>
+    </div>
+    <h3>師匠（1人）</h3>
+    ${mentor?`<div class="card learned"><b>${mentor.name}</b>　${CLASSES[mentor.classId].name} Lv${fmt(mentor.level)}<div class="small">戦闘力 ${fmt(mentor.power)}／変更可能：${new Date(S.social.changeAvailableAt).toLocaleDateString('ja-JP')}</div><button onclick="G.releaseMentor()" ${Date.now()>=S.social.changeAvailableAt?'':'disabled'}>師匠を変更する</button></div>`:
+    `<div class="grid wide">${mentorCandidates().map(m=>`<div class="card"><b>${m.name}</b><div class="small">${CLASSES[m.classId].name} Lv${fmt(m.level)}／戦闘力${fmt(m.power)}</div><button onclick="G.chooseMentor('${m.id}')">師事する</button></div>`).join('')}</div>`}
+    <h3>弟子（${S.social.disciples.length}/10）</h3>
+    ${S.social.disciples.length?`<div class="grid wide">${S.social.disciples.map(d=>`<div class="card"><b>${d.name}</b><div class="small">${CLASSES[d.classId].name} Lv${fmt(d.level)}／修練${d.exp||0}/3</div><button onclick="G.dismissDisciple('${d.id}')">契約解除</button></div>`).join('')}</div>`:'<p class="small">まだ弟子はいません。</p>'}
+    ${S.social.disciples.length<10?`<h3>弟子候補</h3><div class="grid wide">${candidates.slice(0,10).map(d=>`<div class="card"><b>${d.name}</b><div class="small">${CLASSES[d.classId].name} Lv${fmt(d.level)}</div><button onclick="G.takeDisciple('${d.id}')">弟子に取る</button></div>`).join('')}</div>`:''}
+    <div class="footerNote">現在は一人用のNPC師弟。データにはuserId・masterIdを保持し、オンライン移行時に実ユーザーへ置換できます。</div>
+  </div>`;
+}
 function rankingView(){
   if(S.rankingLoading){
     return `
@@ -2443,24 +2797,28 @@ function rankingView(){
     </div>`;
   }
 
+  const mode=S.ui.rankingMode||'pvp';
+  const list=mode==='power'?S.rankingData.power:S.rankingData.pvp;
+
   return `
   <div class="panel">
-    <h2>PVPランキング（モックサーバー）</h2>
-    <p class="small">実サーバー未接続。MockServerがランキングと対戦結果を疑似保存します。</p>
+    <h2>非同期PVP・ランキング</h2>
+    <p class="small">攻撃側は手動操作、防衛側は保存スナップショットをAI操作。現在はローカル疑似サーバーです。</p>
+    <div class="flex"><button class="${mode==='pvp'?'primary':''}" onclick="G.setRankingMode('pvp')">シーズンPVP：${SEASON_ID}</button><button class="${mode==='power'?'primary':''}" onclick="G.setRankingMode('power')">無期限・総合戦闘力</button></div>
     <div class="tableWrap">
       <table>
         <thead>
-          <tr><th>位</th><th>名前</th><th>職業／二つ名</th><th>Lv</th><th>Rate</th><th>行動</th></tr>
+          <tr><th>位</th><th>名前</th><th>職業／二つ名</th><th>Lv</th><th>${mode==='power'?'戦闘力':'Rate'}</th><th>行動</th></tr>
         </thead>
         <tbody>
-          ${S.rankingData.map((e, i) => `
+          ${list.map((e, i) => `
             <tr style="${e.isPlayer ? 'background:#24304a;' : ''}">
               <td>${i+1}</td>
               <td>${esc(e.name)}${e.isPlayer ? '（あなた）' : ''}</td>
               <td>${esc(e.title)}</td>
               <td>${fmt(e.level)}</td>
-              <td>${fmt(e.rating)}</td>
-              <td>${e.isPlayer ? '-' : `<button onclick="G.startPvp('${e.id}')">挑戦</button>`}</td>
+              <td>${fmt(mode==='power'?e.power:e.rating)}</td>
+              <td>${e.isPlayer||mode==='power' ? '-' : `<button onclick="G.startPvp('${e.id}')">防衛AIへ挑戦</button>`}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -2546,10 +2904,10 @@ function battleView(){
           <button onclick="G.useSkill('${sk.id}')" ${skillUsable(sk) ? '' : 'disabled'} title="${esc(sk.desc + ' ' + skillFlavor(sk))}">
             ${sk.name}<br>
             <span class="small">
-              ${sk.ki ? `KI${sk.ki}` : ''}
+              ${sk.ki ? `KI${skillKiCost(sk)}` : ''}
               ${sk.hpCost ? `HP${sk.hpCost}%` : ''}
               ${sk.fx && sk.fx.stackConsume && sk.fx.stackConsume.required ? ` / ${RESOURCE_NAMES[sk.fx.stackConsume.type]}必須` : ''}
-            </span><br><span class="small">${skillFlavor(sk).slice(0,34)}…</span>
+            </span><br><span class="small">熟練Lv${skillMastery(sk.id).level}・使用${fmt(skillMastery(sk.id).uses)}回</span><br><span class="small">${skillFlavor(sk).slice(0,34)}…</span>
           </button>
         `).join('')}
       </div>
@@ -2583,6 +2941,7 @@ function battleView(){
         <div class="bar enemy"><div style="width:${ehpPct}%"></div></div>
         <div class="small">HP ${fmt(Math.max(0, b.enemy.hp))} / ${fmt(b.enemy.maxHP)}</div>
         ${b.isPvp ? `<div class="small">Rating ${fmt(b.enemy.rating)}</div>` : ''}
+        <div class="skillFlavor"><b>敵の予兆</b><br>${enemyIntentText(b)}</div>
         ${Array.isArray(b.enemy.skills) ? `<div class="small">警戒技：${b.enemy.skills.map(s => s.name.replace(/^敵技・|^主技・/, '')).join('／')}</div>` : ''}
         <div>${enemyStatusPills}</div>
         ${b.enemy.boss ? '<span class="pill warn">BOSS</span>' : ''}
@@ -2606,6 +2965,7 @@ function contentView(){
     case 'skills': return skillsView();
     case 'equip': return equipView();
     case 'class': return classView();
+    case 'social': return socialView();
     case 'ranking': return rankingView();
     case 'story': return storyView();
     case 'settings': return settingsView();
