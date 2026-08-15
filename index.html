@@ -798,27 +798,31 @@ const MENTOR_TECHNIQUES = {
 for(const tech of Object.values(MENTOR_TECHNIQUES)) SKILLS[tech.id]=tech;
 
 const AREAS = [
-  {id:'grass', name:'始まりの草原', mult:1, dropRate:.35, enemies:['見習いゴブリン','暴れウサギ','旅の剣士','案山子剣客','風斬り狼']},
-  {id:'forest', name:'霧の森', mult:1.25, dropRate:.40, enemies:['森狼','迷い亡霊','妖刀使い','キノコ剣士','霧の暗殺者']},
-  {id:'grave', name:'古剣の墓所', mult:1.6, dropRate:.45, enemies:['錆びた鎧剣士','呪われた大剣','墓守の居合','剣憑き','折れた聖剣']},
-  {id:'mine', name:'呪われた坑道', mult:2.0, dropRate:.50, enemies:['坑道喰らい','呪血の囚人','鉄鎖の亡者','闇鍛冶の影','地底剣鬼']},
-  {id:'tower', name:'天剣の頂', mult:2.5, dropRate:.55, enemies:['剣聖の影','天剣騎士','龍剣士','無名の達人','風の剣精']},
+  {id:'grass', name:'始まりの草原', recommendedLv:1, levelRate:.90, levelBonus:0, statMult:.92, rewardMult:1.00, dropRate:.35, enemies:['見習いゴブリン','暴れウサギ','旅の剣士','案山子剣客','風斬り狼']},
+  {id:'forest', name:'霧の森', recommendedLv:5, levelRate:.94, levelBonus:2, statMult:.96, rewardMult:1.15, dropRate:.40, enemies:['森狼','迷い亡霊','妖刀使い','キノコ剣士','霧の暗殺者']},
+  {id:'grave', name:'古剣の墓所', recommendedLv:10, levelRate:.98, levelBonus:4, statMult:1.00, rewardMult:1.35, dropRate:.45, enemies:['錆びた鎧剣士','呪われた大剣','墓守の居合','剣憑き','折れた聖剣']},
+  {id:'mine', name:'呪われた坑道', recommendedLv:18, levelRate:1.02, levelBonus:7, statMult:1.04, rewardMult:1.60, dropRate:.50, enemies:['坑道喰らい','呪血の囚人','鉄鎖の亡者','闇鍛冶の影','地底剣鬼']},
+  {id:'tower', name:'天剣の頂', recommendedLv:28, levelRate:1.06, levelBonus:10, statMult:1.08, rewardMult:1.90, dropRate:.55, enemies:['剣聖の影','天剣騎士','龍剣士','無名の達人','風の剣精']},
   {
     id:'memory',
     name:'剣の記憶',
-    mult:3.2,
+    recommendedLv:40,
+    levelRate:1.10,
+    levelBonus:14,
+    statMult:1.12,
+    rewardMult:2.30,
     dropRate:.65,
     enemies:['過去の剣士','剣の残響','始まりの剣','終焉の剣','達人の幻影']
   }
 ];
 
 const AREA_BOSSES = {
-  grass:{name:'道場破り・赤城',title:'草原の主',power:1.45,rewardGold:1200,rewardSp:5},
-  forest:{name:'霧隠れの剣鬼',title:'霧の主',power:1.65,rewardGold:2500,rewardSp:6},
-  grave:{name:'死せる剣豪・宗厳',title:'墓所の主',power:1.90,rewardGold:5000,rewardSp:7},
-  mine:{name:'破城の巨剣・巌鉄',title:'坑道の主',power:2.20,rewardGold:9000,rewardSp:8},
-  tower:{name:'天剣宗師・白蓮',title:'天剣の主',power:2.55,rewardGold:16000,rewardSp:10},
-  memory:{name:'己が剣影',title:'最後の剣',power:3.00,rewardGold:30000,rewardSp:15}
+  grass:{name:'道場破り・赤城',title:'草原の主',power:1.25,rewardGold:1200,rewardSp:5},
+  forest:{name:'霧隠れの剣鬼',title:'霧の主',power:1.32,rewardGold:2500,rewardSp:6},
+  grave:{name:'死せる剣豪・宗厳',title:'墓所の主',power:1.40,rewardGold:5000,rewardSp:7},
+  mine:{name:'破城の巨剣・巌鉄',title:'坑道の主',power:1.48,rewardGold:9000,rewardSp:8},
+  tower:{name:'天剣宗師・白蓮',title:'天剣の主',power:1.58,rewardGold:16000,rewardSp:10},
+  memory:{name:'己が剣影',title:'最後の剣',power:1.72,rewardGold:30000,rewardSp:15}
 };
 const SWORD_RANKS = ['見習い','剣士','剣客','剣豪','師範','宗師','剣極'];
 const MASTERY_THRESHOLDS = [0,10,30,75,150];
@@ -861,10 +865,12 @@ const TUTORIAL = [
   {h:'スキル継承', p:'他職スキルはアクティブ2個・パッシブ2個まで継承候補にでき、戦闘ビルドへ装備して使用します。他職の奥義は継承できません。'},
   {h:'戦闘ビルド', p:'戦闘へ持ち込めるのはアクティブ4、パッシブ4、奥義1。タグを3個揃えるとシナジーが発動します。'},
   {h:'極意ゲージ', p:'戦闘開始時は0。通常攻撃・通常スキル・防御・被ダメージ・会心・回避で蓄積し、奥義は100、秘伝技は200消費します。'},
+  {h:'剣技の再使用', p:'強力な通常スキルは使用後1～3ターン再使用できません。別のスキルで連携し、気力が減ったら通常攻撃で14回復します。防御の気力回復は8です。'},
   {h:'ビルドプリセット', p:'スキル画面で現在の戦闘ビルドを3枠まで保存し、同じ職業ならボタン1つで切り替えられます。'},
   {h:'熟練度', p:'スキル使用10・30・75・150回で熟練Lvが上がり、威力上昇と気力軽減を得ます。'},
   {h:'段位と主', p:'各エリアで3勝すると主へ挑戦可能。主を倒すと次エリアと段位が解放されます。'},
   {h:'敵の予兆', p:'技・集中・精神力が高いほど、敵の次の行動を詳しく見抜けます。'},
+  {h:'敵の成長', p:'敵もあなたのレベルに応じて成長しますが、後半ほど緩やかな追加補正になります。装備・スキル・熟練度・師弟補正を整えれば、同じ相手との差を広げられます。'},
   {h:'師弟', p:'師匠1人と弟子10人まで。師匠との親密度100で最終試練が解放され、勝利すると専用秘伝技を継承できます。秘伝枠は1個です。'},
   {h:'装備', p:'敵が装備を落とします。インベントリから装着し、不要なら売ってゴールドに。'},
   {h:'PVP', p:'ランキングはサーバー想定のモックAPIで動きます。実サーバーに移す場合は MockServer を fetch に置き換えます。'}
@@ -881,7 +887,7 @@ const SERVER_DESIGN = [
 
 function defaultState(){
   return {
-    version:8,
+    version:10,
     screen:'title',
     name:'',
     gender:'その他',
@@ -1179,7 +1185,15 @@ function awardBattleMastery(){
 }
 function skillKiCost(sk){
   const base=sk.ki||0, lv=skillMastery(sk.id).level;
-  return Math.max(0,base-Math.max(0,lv-2));
+  const surcharge=!ultimateGaugeCost(sk) ? (sk.tier>=4?8:sk.tier>=3?4:0) : 0;
+  return Math.max(0,base+surcharge-Math.max(0,lv-2));
+}
+function skillCooldownTurns(sk){
+  if(!sk||sk.type!=='active'||ultimateGaugeCost(sk)) return 0;
+  if(sk.tier>=4) return 3;
+  if(sk.tier>=3) return 2;
+  if(sk.tier>=2) return 1;
+  return 0;
 }
 function activeSynergies(){
   const ids=[...usableSkillIds('active'),...usableSkillIds('passive')];
@@ -1580,9 +1594,18 @@ function itemComparisonText(item,current){
 }
 function enhanceCost(item){ return Math.floor(120*Math.pow((item.enhance||0)+1,2)*Math.max(1,item.level/5)); }
 
+function areaEnemyLevel(area, boss=false){
+  const rate=area.levelRate||1;
+  const bonus=area.levelBonus||0;
+  const variance=boss ? 1 : .92+Math.random()*.16;
+  return Math.max(1,Math.floor((S.level*rate+bonus)*variance));
+}
+
 function makeEnemy(areaId){
   const area = AREAS.find(a => a.id === areaId) || AREAS[0];
-  const lvl = Math.max(1, Math.floor(S.level * area.mult * (0.85 + Math.random()*0.3)));
+  const lvl = areaEnemyLevel(area,false);
+  const statMult=area.statMult||1;
+  const rewardMult=area.rewardMult||1;
   let name = choice(area.enemies);
   let boss = false;
 
@@ -1591,12 +1614,12 @@ function makeEnemy(areaId){
     boss = true;
   }
 
-  const maxHP = Math.floor((45 + lvl*18) * area.mult * (boss ? 2.2 : 1));
-  const atk = Math.floor((8 + lvl*4.2) * area.mult * (boss ? 1.4 : 1));
-  const def = Math.floor((4 + lvl*2.6) * area.mult * (boss ? 1.2 : 1));
+  const maxHP = Math.floor((45 + lvl*18) * statMult * (boss ? 2.0 : 1));
+  const atk = Math.floor((8 + lvl*4.2) * statMult * (boss ? 1.28 : 1));
+  const def = Math.floor((4 + lvl*2.6) * statMult * (boss ? 1.15 : 1));
   const speed = Math.floor(8 + lvl*2.1 * (boss ? 1.1 : 1));
-  const exp = Math.floor((25 + lvl*42) * area.mult * (boss ? 4 : 1));
-  const gold = Math.floor((20 + lvl*30) * area.mult * (boss ? 6 : 1));
+  const exp = Math.floor((25 + lvl*42) * rewardMult * (boss ? 3.5 : 1));
+  const gold = Math.floor((20 + lvl*30) * rewardMult * (boss ? 5 : 1));
 
   return {
     name, level:lvl, maxHP, hp:maxHP, atk, def, speed, exp, gold,
@@ -1607,12 +1630,15 @@ function makeEnemy(areaId){
 function makeAreaBoss(areaId){
   const area=AREAS.find(a=>a.id===areaId)||AREAS[0];
   const spec=AREA_BOSSES[area.id];
-  const lvl=Math.max(5,Math.floor(S.level*area.mult));
+  const lvl=Math.max(5,areaEnemyLevel(area,true));
   const power=spec.power;
-  const maxHP=Math.floor((100+lvl*30)*power*area.mult);
+  const statMult=area.statMult||1;
+  const attackPower=(1+(power-1)*.50)*.90;
+  const bossEndurance=2.35+power*.25;
+  const maxHP=Math.floor((100+lvl*30)*power*statMult*bossEndurance);
   return {
     name:`【${spec.title}】${spec.name}`,level:lvl,maxHP,hp:maxHP,
-    atk:Math.floor((12+lvl*5)*power),def:Math.floor((8+lvl*3.2)*power),speed:Math.floor((10+lvl*2.2)*Math.min(1.4,power)),
+    atk:Math.floor((12+lvl*5)*attackPower*statMult),def:Math.floor((8+lvl*3.2)*(1+(power-1)*.55)*statMult),speed:Math.floor((10+lvl*2.2)*Math.min(1.25,1+(power-1)*.35)),
     exp:Math.floor((100+lvl*80)*power),gold:spec.rewardGold,isPvp:false,boss:true,fixedBoss:true,
     areaId:area.id,dropRate:1,rating:0,opponentId:null,skills:makeEnemySkills(spec.name,true)
   };
@@ -1662,6 +1688,7 @@ function initBattle(enemy, isPvp, opponentId){
     maxKI:d.maxKI,
     ultimateGauge:0,
     maxUltimateGauge:200,
+    cooldowns:{},
     shield:0,
     stacks:{draw:0, combo:0, destroy:0, mana:0, guard:0, blood:0, mind:0},
     buffs:{atk:0, def:0, dodge:0, crit:0, turns:0},
@@ -1758,6 +1785,7 @@ function enemySpeed(b){
 function skillUsable(sk){
   const b = S.battle;
   if(!b || !sk || sk.type !== 'active') return false;
+  if((b.cooldowns&&b.cooldowns[sk.id]||0)>0) return false;
   if(skillKiCost(sk) > b.playerKI) return false;
   if((b.ultimateGauge||0)<ultimateGaugeCost(sk)) return false;
   if(sk.hpCost){
@@ -1817,13 +1845,15 @@ function dealPlayerHits(d, sk, stackBonus, name){
 }
 function basicAttack(d){
   const b = S.battle;
-  b.playerKI = Math.min(b.maxKI, b.playerKI + 6);
+  const kiGain=14;
+  b.playerKI = Math.min(b.maxKI, b.playerKI + kiGain);
   const res = classResource(S.classId);
   if(res) addStack(res, 1);
   blog(basicSwordNarration(d),'tech');
   if(S.stats.tec >= S.level + 12) blog(`技${fmt(S.stats.tec)}が最短の刃筋を選び、会心点へ切先を導く。`,'stat');
   if(S.stats.str >= S.level + 12) blog(`力${fmt(S.stats.str)}の剣圧が敵の防御姿勢を軋ませる。`,'stat');
   dealPlayerHits(d, {power:1, hits:1}, 0, '通常攻撃');
+  blog(`刃を振り抜いた呼吸で気脈を整える。気力+${kiGain}。`,'stat');
   addUltimateGauge(20,'通常攻撃');
   return true;
 }
@@ -1832,7 +1862,8 @@ function useSkillById(id, d){
   const sk = SKILLS[id];
   if(!sk || !hasSkill(id) || sk.type !== 'active' || !usableSkillIds('active').includes(id)) return false;
   if(!skillUsable(sk)){
-    blog('気力・生命・専用ゲージのいずれかが足りず、技の型を完成できない。','system');
+    const wait=b.cooldowns&&b.cooldowns[sk.id]||0;
+    blog(wait>0?`${sk.name}は再使用まであと${wait}ターン。別の剣技で攻め筋を組み立てる必要がある。`:'気力・生命・専用ゲージのいずれかが足りず、技の型を完成できない。','system');
     return false;
   }
 
@@ -1846,6 +1877,11 @@ function useSkillById(id, d){
 
   const actualKiCost=skillKiCost(sk);
   if(actualKiCost) b.playerKI -= actualKiCost;
+  const cooldown=skillCooldownTurns(sk);
+  if(cooldown){
+    b.cooldowns[sk.id]=cooldown+1;
+    blog(`${sk.name}は大きく型を使う技。再使用まで${cooldown}ターン。`,'system');
+  }
   if(sk.hpCost){
     const cost = Math.floor(b.maxHP * sk.hpCost / 100);
     b.playerHP -= cost;
@@ -2097,6 +2133,14 @@ function endRound(d){
     }
   }
 
+  for(const id of Object.keys(b.cooldowns||{})){
+    b.cooldowns[id]=Math.max(0,b.cooldowns[id]-1);
+    if(b.cooldowns[id]===0){
+      delete b.cooldowns[id];
+      if(SKILLS[id]) blog(`${SKILLS[id].name}の型が整い、再使用可能。`,'stance');
+    }
+  }
+
   b.turn++;
   blog(`―― 第${fmt(b.turn)}合 ――`,'system');
 }
@@ -2118,11 +2162,11 @@ function performAction(action){
 
   if(action.type === 'defend'){
     b.playerDefending = true;
-    b.playerKI = Math.min(b.maxKI, b.playerKI + 20);
+    b.playerKI = Math.min(b.maxKI, b.playerKI + 8);
     const res = classResource(S.classId);
     if(res === 'guard') addStack('guard', 1);
     blog(`刃を正中線へ立て、守備${fmt(S.stats.def)}の型で敵の剣路を塞ぐ。`,'defense');
-    blog(`呼吸を乱さず攻撃を待つ。気力+20。`,'stat');
+    blog(`守りながら呼吸を整える。気力+8。通常攻撃なら気力をより多く回収できる。`,'stat');
     addUltimateGauge(25,'防御');
     enemyTurn(d);
     if(checkPlayerDead()) return;
@@ -2848,7 +2892,7 @@ function adventureView(){
         <div class="card ${cleared?'learned':''}" style="${unlocked?'':'opacity:.45'}">
           <b>${a.name}</b>
           <span class="pill ${cleared?'good':''}">${cleared?'制覇済み':unlocked?'修練可能':'未解放'}</span>
-          <div class="small">目安Lv ${fmt(Math.max(1, Math.floor(S.level*a.mult)))} / ドロップ傾向 ${Math.round(a.dropRate*100)}%</div>
+          <div class="small">推奨Lv ${fmt(a.recommendedLv||1)}～ / 敵Lv目安 ${fmt(Math.max(1,Math.floor(S.level*(a.levelRate||1)+(a.levelBonus||0))))}前後 / ドロップ傾向 ${Math.round(a.dropRate*100)}%</div>
           <div class="small">出現：${a.enemies.slice(0,3).join('、')} ほか</div>
           <div class="small">主への挑戦条件：通常戦3勝（${Math.min(3,wins)}/3）</div>
           <div class="flex"><button onclick="G.startBattle('${a.id}')" ${unlocked?'':'disabled'}>修練へ出撃（ST5）</button>
@@ -2986,7 +3030,7 @@ function skillsView(){
       <div class="card" style="margin-top:12px">
         <div class="flex">
           <b>${selected.name}</b>
-          <span class="pill right">${isUltimateSkill(selected)?'奥義':selected.type === 'active' ? 'アクティブ' : 'パッシブ'} / SP${selected.sp}${selected.ki ? ` / KI${skillKiCost(selected)}` : ''}${selected.hpCost ? ` / HP${selected.hpCost}%` : ''}${ultimateGaugeCost(selected)?` / 極意${ultimateGaugeCost(selected)}`:''}</span>
+          <span class="pill right">${isUltimateSkill(selected)?'奥義':selected.type === 'active' ? 'アクティブ' : 'パッシブ'} / SP${selected.sp}${selected.ki ? ` / KI${skillKiCost(selected)}` : ''}${selected.hpCost ? ` / HP${selected.hpCost}%` : ''}${skillCooldownTurns(selected)?` / 再使用${skillCooldownTurns(selected)}T`:''}${ultimateGaugeCost(selected)?` / 極意${ultimateGaugeCost(selected)}`:''}</span>
         </div>
         <div class="small">前提：${reqText}</div>
         <div class="small">タグ：${inferredSkillTags(selected).map(t=>`【${t}】`).join('')}／熟練Lv${skillMastery(selected.id).level}／使用${fmt(skillMastery(selected.id).uses)}回／${masteryNextText(selected.id)}</div>
@@ -3290,6 +3334,7 @@ function battleView(){
             <span class="small">
               ${sk.ki ? `KI${skillKiCost(sk)}` : ''}
               ${sk.hpCost ? `HP${sk.hpCost}%` : ''}
+              ${skillCooldownTurns(sk)?` / 再使用${(b.cooldowns&&b.cooldowns[sk.id]||0)>0?`あと${b.cooldowns[sk.id]}T`:`${skillCooldownTurns(sk)}T`}`:''}
               ${sk.fx && sk.fx.stackConsume && sk.fx.stackConsume.required ? ` / ${RESOURCE_NAMES[sk.fx.stackConsume.type]}必須` : ''}
               ${ultimateGaugeCost(sk)?` / 極意${ultimateGaugeCost(sk)}${(b.ultimateGauge||0)<ultimateGaugeCost(sk)?`（あと${ultimateGaugeCost(sk)-(b.ultimateGauge||0)}）`:''}`:''}
             </span><br><span class="small">熟練Lv${skillMastery(sk.id).level}・使用${fmt(skillMastery(sk.id).uses)}回</span><br><span class="small">${skillFlavor(sk).slice(0,34)}…</span>
