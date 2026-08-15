@@ -418,6 +418,27 @@ const CLASSES = {
   }
 };
 
+const EQUIP_SLOTS = ['rightHand','leftHand','head','body','accessory1','accessory2'];
+const SLOT_NAMES = {rightHand:'右手',leftHand:'左手',head:'頭',body:'胴',accessory1:'装飾1',accessory2:'装飾2'};
+const WEAPON_TYPES = {
+  sword:{name:'片手剣',hands:1}, katana:{name:'刀',hands:1}, wakizashi:{name:'脇差',hands:1},
+  greatsword:{name:'大剣',hands:2}, magicSword:{name:'魔剣',hands:1}, curseSword:{name:'呪剣',hands:1},
+  shield:{name:'盾',hands:1}, catalyst:{name:'魔導具',hands:1}, scabbard:{name:'鞘',hands:1}, curseTool:{name:'呪具',hands:1}
+};
+const CLASS_EQUIP_RULES = {
+  kenshi:{right:['sword'],left:[]}, kensei:{right:['sword'],left:[]},
+  iai:{right:['katana'],left:['scabbard']}, mumei:{right:['katana'],left:['scabbard']},
+  nitou:{right:['sword','wakizashi'],left:['sword','wakizashi']}, souten:{right:['sword','wakizashi'],left:['sword','wakizashi']},
+  daitou:{right:['greatsword'],left:[]}, hajou:{right:['greatsword'],left:[]},
+  magi:{right:['magicSword'],left:['catalyst']}, madou:{right:['magicSword'],left:['catalyst']},
+  seiken:{right:['sword'],left:['shield']}, seigo:{right:['sword'],left:['shield']},
+  juken:{right:['curseSword'],left:['curseTool']}, meiju:{right:['curseSword'],left:['curseTool']}
+};
+const CLASS_STARTER_TYPES = {
+  iai:['katana','scabbard'], nitou:['sword','wakizashi'], daitou:['greatsword'],
+  magi:['magicSword','catalyst'], seiken:['sword','shield'], juken:['curseSword','curseTool']
+};
+
 const SKILLS = {
   ken_slash:{
     id:'ken_slash', cls:'kenshi', name:'一文字斬り', tier:1, col:0, req:[], sp:2, type:'active', ki:6,
@@ -879,7 +900,7 @@ const TUTORIAL = [
   {h:'ステータス', p:'10種類のステータスを自由に振れます。力・技・素早さ・体力・精神力・守備・幸運・気力・集中・威圧。'},
   {h:'スキルツリー', p:'スキルは視覚的なツリーから習得します。前提スキルやSPを考慮して、自分だけの構成を作ってください。'},
   {h:'職業の個性', p:'最初に選んだ上級職の系統は固定され、Lv35で系統ごとの最終職へ進みます。剣士を貫いた場合のみ剣聖を選べます。'},
-  {h:'スキル継承', p:'他職スキルはアクティブ2個・パッシブ2個まで継承候補にでき、戦闘ビルドへ装備して使用します。他職の奥義は継承できません。'},
+  {h:'スキル継承', p:'他職スキルはアクティブ2個・パッシブ2個まで継承候補にでき、戦闘ビルドへ装備して使用します。継承技は現在の武器へ型を適応するため、元職の武器条件を受けません。他職の奥義は継承できません。'},
   {h:'戦闘ビルド', p:'戦闘へ持ち込めるのはアクティブ4、パッシブ4、奥義1。タグを3個揃えるとシナジーが発動します。'},
   {h:'極意ゲージ', p:'戦闘開始時は0。通常攻撃・通常スキル・防御・被ダメージ・会心・回避で蓄積し、奥義は100、秘伝技は200消費します。'},
   {h:'剣技の再使用', p:'強力な通常スキルは使用後1～3ターン再使用できません。別のスキルで連携し、気力が減ったら通常攻撃で14回復します。Lv50以降は最大気力の成長に合わせて技の消費気力も増え、通常攻撃の役割が失われません。'},
@@ -890,7 +911,7 @@ const TUTORIAL = [
   {h:'敵の予兆', p:'技・集中・精神力が高いほど、敵の次の行動を詳しく見抜けます。'},
   {h:'敵の成長', p:'敵もレベルと剣境に応じて成長し、通常・手練れ・達人・剣豪の4段階が出現します。HP中心の補正なので一撃死を増やさず、装備・スキル・熟練度・師弟補正で勝率と討伐速度に差を付けられます。'},
   {h:'師弟', p:'師匠1人と弟子10人まで。師匠との親密度100で最終試練が解放され、勝利すると専用秘伝技を継承できます。秘伝枠は1個です。'},
-  {h:'装備', p:'敵が装備を落とします。インベントリから装着し、不要なら売ってゴールドに。'},
+  {h:'装備', p:'右手・左手・頭・胴・装飾2枠。職業ごとに装備可能な剣や補助具が異なります。左右の能力は100%反映され、二刀・大剣・魔剣・盾などは装備自体の性能で均衡します。転職時には最低限の修練装備が支給されます。'},
   {h:'PVP', p:'ランキングはサーバー想定のモックAPIで動きます。実サーバーに移す場合は MockServer を fetch に置き換えます。'}
 ];
 
@@ -905,7 +926,7 @@ const SERVER_DESIGN = [
 
 function defaultState(){
   return {
-    version:11,
+    version:12,
     screen:'title',
     name:'',
     gender:'その他',
@@ -924,7 +945,8 @@ function defaultState(){
     classPath:null,
     learned:[],
     inventory:[],
-    equip:{weapon:null, armor:null, accessory:null},
+    equip:{rightHand:null,leftHand:null,head:null,body:null,accessory1:null,accessory2:null},
+    starterGearGranted:{},
     rating:1000,
     wins:0,
     losses:0,
@@ -936,7 +958,7 @@ function defaultState(){
       buildPresets:[null,null,null,null,null], rankingMode:'pvp',legalPage:'terms'
     },
     social:{mentor:null,disciples:[],changeAvailableAt:0,bondPoints:0,mentorBonds:{}},
-    online:{schemaVersion:1,userId:null,seasonId:SEASON_ID,defenseSnapshot:null,lastSyncAt:null},
+    online:{schemaVersion:2,userId:null,seasonId:SEASON_ID,defenseSnapshot:null,lastSyncAt:null},
     monetization:{testMode:true,stamina:100,lastStaminaAt:Date.now(),rewardUses:0,rewardDate:'',adFree:false,passUntil:0,passDailyDate:''},
     battle:null,
     rankingLoading:false,
@@ -1323,11 +1345,19 @@ function load(){
     S = Object.assign({}, def, d);
     S.version=def.version;
     S.stats = Object.assign({}, def.stats, d.stats || {});
-    S.equip = Object.assign({}, def.equip, d.equip || {});
+    const oldEquip=d.equip||{};
+    S.equip = Object.assign({}, def.equip, oldEquip);
+    // v11以前の3枠装備を失わず、新しい6枠へ移す。
+    if(oldEquip.weapon && !oldEquip.rightHand){ oldEquip.weapon.slot='hand'; oldEquip.weapon.weaponType=oldEquip.weapon.weaponType||'sword'; S.equip.rightHand=oldEquip.weapon; }
+    if(oldEquip.armor && !oldEquip.body){ oldEquip.armor.slot='body'; S.equip.body=oldEquip.armor; }
+    if(oldEquip.accessory && !oldEquip.accessory1){ oldEquip.accessory.slot='accessory'; S.equip.accessory1=oldEquip.accessory; }
+    delete S.equip.weapon; delete S.equip.armor; delete S.equip.accessory;
+    S.starterGearGranted=Object.assign({},d.starterGearGranted||{});
     S.ui = Object.assign({}, def.ui, d.ui || {});
     S.social = Object.assign({}, def.social, d.social || {});
     S.social.mentorBonds=Object.assign({},d.social&&d.social.mentorBonds||{});
     S.online = Object.assign({}, def.online, d.online || {});
+    S.online.schemaVersion=2;
     S.monetization=Object.assign({},def.monetization,d.monetization||{});
     if(!Array.isArray(S.clearedAreas)) S.clearedAreas=[];
     S.areaWins=Object.assign({},d.areaWins||{});
@@ -1340,7 +1370,11 @@ function load(){
     S.ui.inheritPassive = S.ui.inheritPassive.filter(id => SKILLS[id] && SKILLS[id].type === 'passive').slice(0,2);
     if(!Array.isArray(S.learned)) S.learned = [];
     if(!Array.isArray(S.inventory)) S.inventory = [];
-    for(const item of [...S.inventory,...Object.values(S.equip).filter(Boolean)]) if(item.enhance==null) item.enhance=0;
+    for(const item of [...S.inventory,...Object.values(S.equip).filter(Boolean)]){
+      if(item.enhance==null) item.enhance=0;
+      if(item.slot==='weapon'){ item.slot='hand'; item.weaponType=item.weaponType||'sword'; }
+      if(item.slot==='armor') item.slot='body';
+    }
     if(!Array.isArray(S.ui.activeLoadout)) S.ui.activeLoadout=[];
     if(!Array.isArray(S.ui.passiveLoadout)) S.ui.passiveLoadout=[];
     if(!Array.isArray(S.ui.buildPresets)) S.ui.buildPresets=[null,null,null,null,null];
@@ -1357,6 +1391,11 @@ function load(){
       const parent = FINAL_CLASS_FROM[S.classId];
       if(parent && parent !== 'kenshi') S.classPath = parent;
     }
+    for(const hand of ['rightHand','leftHand']){
+      if(S.equip[hand] && !canEquipTo(S.equip[hand],hand)){ S.inventory.push(S.equip[hand]); S.equip[hand]=null; }
+    }
+    const loadStyle=ADVANCED_CLASSES.includes(S.classId)?S.classId:FINAL_CLASS_FROM[S.classId];
+    if(loadStyle) grantStarterGear(loadStyle);
     S.battle = null;
     S.rankingLoading = false;
     S.rankingData = null;
@@ -1478,7 +1517,7 @@ function getEquipBonuses(){
     atk:0, def:0, hp:0, spd:0, crit:0, dodge:0, ki:0,
     lifesteal:0, skillPct:0, pvp:0, expBonus:0, goldBonus:0, counter:0
   };
-  for(const slot of ['weapon','armor','accessory']){
+  for(const slot of EQUIP_SLOTS){
     const item = S.equip[slot];
     if(!item) continue;
     for(const key of Object.keys(b)){
@@ -1523,10 +1562,10 @@ function getCombatPower(){
 }
 function buildDefenseSnapshot(){
   return {
-    schemaVersion:1,userId:S.online.userId,seasonId:SEASON_ID,name:S.name,classId:S.classId,
+    schemaVersion:2,userId:S.online.userId,seasonId:SEASON_ID,name:S.name,classId:S.classId,
     level:S.level,rating:S.rating,power:getCombatPower(),stats:{...S.stats},
     loadout:{active:[...S.ui.activeLoadout],passive:[...S.ui.passiveLoadout],ultimate:S.ui.ultimateLoadout,secret:S.ui.secretLoadout},
-    equip:['weapon','armor','accessory'].map(slot=>S.equip[slot]?{slot,name:S.equip[slot].name,rarity:S.equip[slot].rarity,level:S.equip[slot].level,enhance:S.equip[slot].enhance||0}:null),
+    equip:EQUIP_SLOTS.map(slot=>S.equip[slot]?{slot,name:S.equip[slot].name,weaponType:S.equip[slot].weaponType||null,rarity:S.equip[slot].rarity,level:S.equip[slot].level,enhance:S.equip[slot].enhance||0,atk:S.equip[slot].atk||0,def:S.equip[slot].def||0,hp:S.equip[slot].hp||0,spd:S.equip[slot].spd||0,crit:S.equip[slot].crit||0,dodge:S.equip[slot].dodge||0,ki:S.equip[slot].ki||0,lifesteal:S.equip[slot].lifesteal||0,skillPct:S.equip[slot].skillPct||0,counter:S.equip[slot].counter||0}:null),
     swordRank:swordRankName(),bondBonus:bondBonusPct(),updatedAt:Date.now()
   };
 }
@@ -1546,39 +1585,64 @@ function rollRarity(luk, boss){
   if(r < 40) return 'fine';
   return 'common';
 }
-function makeItemName(slot, rarity){
-  const base = {
-    weapon:['木剣','鉄剣','鋼剣','秘銀剣','霊剣','魔剣','聖剣','神剣'],
-    armor:['布鎧','革鎧','鉄鎧','鋼鎧','騎士鎧','霊鎧','聖鎧','神鎧'],
-    accessory:['お守り','指輪','護符','首飾り','徽章','羽飾り','勾玉','刻印']
+function makeItemName(slot, rarity, weaponType=null){
+  const weaponNames={
+    sword:['木剣','鉄剣','鋼剣','秘銀剣','霊剣'],katana:['打刀','備前刀','月影刀','天光刀'],
+    wakizashi:['脇差','小太刀','燕返しの短剣','双牙'],greatsword:['鉄塊剣','断岩大剣','竜骨大剣','城砕き'],
+    magicSword:['炎紋の魔剣','氷晶の魔剣','雷鳴の魔剣','星霊剣'],curseSword:['血錆の呪剣','怨嗟刀','冥府剣','喰命剣'],
+    shield:['鉄盾','騎士盾','聖紋盾','天護盾'],catalyst:['魔晶石','元素環','星読みの宝珠','魔導書'],
+    scabbard:['黒漆の鞘','静寂の鞘','瞬断の鞘','無明の鞘'],curseTool:['呪符束','血晶','冥府の護符','禁忌の骨印']
+  };
+  const base = slot==='hand' ? weaponNames[weaponType||'sword'] : {
+    head:['鉢金','革兜','鉄兜','剣士兜','霊冠','聖兜'],
+    body:['布鎧','革鎧','鉄鎧','鋼鎧','騎士鎧','霊鎧'],
+    accessory:['お守り','指輪','護符','首飾り','徽章','勾玉']
   }[slot];
   const prefix = {
     common:'', fine:'良質な ', rare:'名工の ', epic:'秘宝 ', legendary:'伝説の '
   }[rarity];
   return prefix + choice(base);
 }
-function generateItem(level, rarity=null, boss=false){
+function preferredWeaponTypes(cls=S.classId){
+  const r=CLASS_EQUIP_RULES[cls]||CLASS_EQUIP_RULES.kenshi;
+  return [...new Set([...(r.right||[]),...(r.left||[])])];
+}
+function generateItem(level, rarity=null, boss=false, forcedType=null){
   if(!rarity) rarity = rollRarity(S.stats.luk, boss);
-  const slot = choice(['weapon','armor','accessory']);
+  const slot = forcedType ? 'hand' : choice(['hand','hand','head','body','accessory','accessory']);
+  const allTypes=Object.keys(WEAPON_TYPES);
+  const preferred=preferredWeaponTypes();
+  const weaponType=slot==='hand' ? (forcedType || choice(chance(70)&&preferred.length?preferred:allTypes)) : null;
   const mult = RARITIES[rarity].mult;
   const budget = Math.max(1, Math.floor(level * mult));
   const item = {
-    id:uid(), slot, rarity, level,
+    id:uid(), slot, weaponType, rarity, level,
     enhance:0,
-    name:makeItemName(slot, rarity),
+    name:makeItemName(slot, rarity, weaponType),
     atk:0, def:0, hp:0, spd:0, crit:0, dodge:0, ki:0,
     lifesteal:0, skillPct:0, pvp:0,
     sell:Math.floor(20 * level * mult)
   };
 
-  if(slot === 'weapon'){
-    item.atk = Math.floor(budget*2.2 + rand(budget));
-    item.crit = Math.floor(budget/8);
-    if(rarity !== 'common' && chance(30)) item.lifesteal = 1 + Math.floor(mult);
-  }else if(slot === 'armor'){
+  if(slot === 'hand'){
+    if(weaponType==='sword'){ item.atk=Math.floor(budget*1.55+rand(budget*.35)); item.def=Math.floor(budget*.18); }
+    if(weaponType==='katana'){ item.atk=Math.floor(budget*1.85+rand(budget*.35)); item.crit=Math.max(1,Math.floor(budget/7)); }
+    if(weaponType==='wakizashi'){ item.atk=Math.floor(budget*1.50+rand(budget*.30)); item.spd=Math.max(1,Math.floor(budget*.28)); item.crit=Math.floor(budget/10); }
+    if(weaponType==='greatsword'){ item.atk=Math.floor(budget*3.75+rand(budget*.55)); item.def=Math.floor(budget*.30); item.spd=-Math.max(1,Math.floor(budget*.10)); }
+    if(weaponType==='magicSword'){ item.atk=Math.floor(budget*1.25+rand(budget*.25)); item.skillPct=Math.max(3,Math.floor(mult*3)); item.ki=Math.floor(budget*.35); item.element=choice(['炎','氷','雷']); }
+    if(weaponType==='curseSword'){ item.atk=Math.floor(budget*1.65+rand(budget*.30)); item.lifesteal=Math.max(2,Math.floor(mult*2)); item.hp=-Math.floor(budget*2); }
+    if(weaponType==='shield'){ item.def=Math.floor(budget*1.65+rand(budget*.25)); item.hp=Math.floor(budget*5); item.counter=Math.max(1,Math.floor(mult)); }
+    if(weaponType==='catalyst'){ item.skillPct=Math.max(5,Math.floor(mult*4)); item.ki=Math.floor(budget*.8); }
+    if(weaponType==='scabbard'){ item.spd=Math.floor(budget*.35); item.crit=Math.max(2,Math.floor(mult*2)); }
+    if(weaponType==='curseTool'){ item.lifesteal=Math.max(2,Math.floor(mult*2)); item.skillPct=Math.max(3,Math.floor(mult*3)); }
+  }else if(slot === 'body'){
     item.def = Math.floor(budget*1.5 + rand(budget));
     item.hp = Math.floor(budget*6);
     if(chance(20)) item.ki = Math.floor(budget/4);
+  }else if(slot === 'head'){
+    item.def=Math.floor(budget*.75+rand(budget*.35));
+    item.hp=Math.floor(budget*2.5);
+    item.crit=Math.floor(budget/14);
   }else{
     item.spd = Math.floor(budget/3);
     item.crit = Math.floor(budget/10);
@@ -1590,7 +1654,7 @@ function generateItem(level, rarity=null, boss=false){
 }
 function generateBossRelic(areaId,level){
   const names={grass:'赤城の破門刀',forest:'霧隠れの忍刀',grave:'宗厳の葬剣',mine:'巌鉄の砕城剣',tower:'白蓮の天剣',memory:'己を超える無銘刀'};
-  const item=generateItem(level,'legendary',true);
+  const item=generateItem(level,'legendary',true,(CLASS_EQUIP_RULES[S.classId]||CLASS_EQUIP_RULES.kenshi).right[0]||'sword');
   item.name=names[areaId]||'主殺しの剣印';
   item.bossRelic=areaId;
   item.skillPct=(item.skillPct||0)+8;
@@ -1599,16 +1663,11 @@ function generateBossRelic(areaId,level){
 }
 function itemStatsText(item){
   const arr = [];
-  if(item.atk) arr.push(`攻撃+${fmt(itemValue(item,'atk'))}`);
-  if(item.def) arr.push(`防御+${fmt(itemValue(item,'def'))}`);
-  if(item.hp) arr.push(`HP+${fmt(itemValue(item,'hp'))}`);
-  if(item.spd) arr.push(`速さ+${fmt(itemValue(item,'spd'))}`);
-  if(item.crit) arr.push(`会心+${fmt(itemValue(item,'crit'))}%`);
-  if(item.dodge) arr.push(`回避+${fmt(itemValue(item,'dodge'))}%`);
-  if(item.ki) arr.push(`気力+${fmt(itemValue(item,'ki'))}`);
-  if(item.lifesteal) arr.push(`吸血+${fmt(itemValue(item,'lifesteal'))}%`);
-  if(item.skillPct) arr.push(`スキル+${fmt(itemValue(item,'skillPct'))}%`);
-  if(item.pvp) arr.push(`PVP+${fmt(itemValue(item,'pvp'))}%`);
+  const add=(label,key,suffix='')=>{if(item[key]){const v=itemValue(item,key);arr.push(`${label}${v>=0?'+':''}${fmt(v)}${suffix}`);}};
+  add('攻撃','atk'); add('防御','def'); add('HP','hp'); add('速さ','spd'); add('会心','crit','%');
+  add('回避','dodge','%'); add('気力','ki'); add('吸血','lifesteal','%'); add('スキル','skillPct','%');
+  add('PVP','pvp','%'); add('反撃','counter','%');
+  if(item.element) arr.push(`${item.element}属性`);
   return arr.join(' / ') || '効果なし';
 }
 function itemComparisonText(item,current){
@@ -1622,6 +1681,48 @@ function itemComparisonText(item,current){
   return parts.join(' / ')||'能力差なし';
 }
 function enhanceCost(item){ return Math.floor(120*Math.pow((item.enhance||0)+1,2)*Math.max(1,item.level/5)); }
+
+function equipmentTypeName(item){
+  if(!item) return '';
+  if(item.slot==='hand') return WEAPON_TYPES[item.weaponType] ? WEAPON_TYPES[item.weaponType].name : '武器';
+  return item.slot==='head'?'頭防具':item.slot==='body'?'胴防具':'装飾品';
+}
+function canEquipTo(item,target){
+  if(!item || !EQUIP_SLOTS.includes(target)) return false;
+  if(item.slot==='head') return target==='head';
+  if(item.slot==='body') return target==='body';
+  if(item.slot==='accessory') return target==='accessory1'||target==='accessory2';
+  if(item.slot!=='hand') return false;
+  const rule=CLASS_EQUIP_RULES[S.classId]||CLASS_EQUIP_RULES.kenshi;
+  return target==='rightHand' ? (rule.right||[]).includes(item.weaponType) : target==='leftHand' ? (rule.left||[]).includes(item.weaponType) : false;
+}
+function equipTargets(item){ return EQUIP_SLOTS.filter(slot=>canEquipTo(item,slot)); }
+function handType(slot){ const i=S.equip[slot]; return i&&i.slot==='hand'?i.weaponType:null; }
+function skillEquipmentIssue(sk){
+  if(!sk || sk.mentorId) return '';
+  if(sk.cls!==S.classId && Array.isArray(S.ui.inheritActive) && S.ui.inheritActive.includes(sk.id)) return '';
+  const rule=CLASS_EQUIP_RULES[sk.cls];
+  if(!rule) return '';
+  const right=handType('rightHand'),left=handType('leftHand');
+  if(!(rule.right||[]).includes(right)) return `${WEAPON_TYPES[(rule.right||[])[0]]?.name||'対応武器'}を右手に装備してください。`;
+  if(['nitou','souten'].includes(sk.cls) && !(rule.left||[]).includes(left)) return '二刀技には左手にも片手剣か脇差が必要です。';
+  if(['daitou','hajou'].includes(sk.cls) && right!=='greatsword') return '大剣技には両手持ちの大剣が必要です。';
+  if(['seiken','seigo'].includes(sk.cls) && sk.id!=='sei_bless' && left!=='shield') return '盾技には左手の盾が必要です。';
+  return '';
+}
+function grantStarterGear(style){
+  if(S.starterGearGranted[style]) return;
+  const types=CLASS_STARTER_TYPES[style]||['sword'];
+  const rule=CLASS_EQUIP_RULES[style]||CLASS_EQUIP_RULES.kenshi;
+  for(const type of types){
+    const item=generateItem(Math.max(1,Math.min(20,S.level)),'common',false,type);
+    item.name=`修練用${WEAPON_TYPES[type].name}`;
+    item.sell=0;
+    const target=(rule.right||[]).includes(type)&&!S.equip.rightHand?'rightHand':(rule.left||[]).includes(type)&&!S.equip.leftHand?'leftHand':null;
+    if(target) S.equip[target]=item; else S.inventory.push(item);
+  }
+  S.starterGearGranted[style]=true;
+}
 
 function areaEnemyLevel(area, boss=false){
   const rate=area.levelRate||1;
@@ -1818,6 +1919,7 @@ function enemySpeed(b){
 function skillUsable(sk){
   const b = S.battle;
   if(!b || !sk || sk.type !== 'active') return false;
+  if(skillEquipmentIssue(sk)) return false;
   if((b.cooldowns&&b.cooldowns[sk.id]||0)>0) return false;
   if(skillKiCost(sk) > b.playerKI) return false;
   if((b.ultimateGauge||0)<ultimateGaugeCost(sk)) return false;
@@ -1876,6 +1978,12 @@ function dealPlayerHits(d, sk, stackBonus, name){
     b.playerHP = Math.min(b.maxHP, b.playerHP + heal);
     blog(`刃が奪った生命力が傷口を塞ぐ。HP${fmt(heal)}回復！`,'stat');
   }
+  const magicBlade=S.equip.rightHand&&S.equip.rightHand.weaponType==='magicSword'?S.equip.rightHand:null;
+  if(total>0 && magicBlade && chance(15)){
+    if(magicBlade.element==='炎'){setEnemyStatus('burn',2,Math.max(1,Math.floor(d.attack*.12)));blog('魔剣の炎紋が傷口で爆ぜ、炎上を刻んだ！','skill');}
+    if(magicBlade.element==='氷'){setEnemyStatus('freeze',1);blog('魔剣の冷気が足運びを封じ、凍結を刻んだ！','skill');}
+    if(magicBlade.element==='雷'){b.enemyDebuffs.spd=Math.max(b.enemyDebuffs.spd,12);b.enemyDebuffs.turns=Math.max(b.enemyDebuffs.turns,2);blog('魔剣の雷が神経を焼き、敵の速度を低下させた！','skill');}
+  }
 
   return total;
 }
@@ -1885,7 +1993,16 @@ function basicAttack(d){
   b.playerKI = Math.min(b.maxKI, b.playerKI + kiGain);
   const res = classResource(S.classId);
   if(res) addStack(res, 1);
-  blog(basicSwordNarration(d),'tech');
+  const right=S.equip.rightHand,left=S.equip.leftHand;
+  if(right&&left&&['sword','wakizashi'].includes(right.weaponType)&&['sword','wakizashi'].includes(left.weaponType)){
+    blog(`${right.name}で敵の剣路を開き、${left.name}を死角へ滑り込ませる。左右二本の能力を重ねた連環斬り！`,'tech');
+  }else if(right&&right.weaponType==='greatsword'){
+    blog(`${right.name}を両手で引き絞る。重量と力を刃先へ集め、地を割る軌道で振り下ろす！`,'tech');
+  }else if(right&&right.weaponType==='magicSword'){
+    blog(`${right.name}の${right.element||'魔力'}が刀身を覆う。物理と術式を重ねた魔導斬撃！`,'tech');
+  }else if(left&&left.weaponType==='shield'){
+    blog(`${left.name}で間合いを奪い、${right?right.name:'剣'}を盾越しに突き通す！`,'tech');
+  }else blog(basicSwordNarration(d),'tech');
   if(S.stats.tec >= S.level + 12) blog(`技${fmt(S.stats.tec)}が最短の刃筋を選び、会心点へ切先を導く。`,'stat');
   if(S.stats.str >= S.level + 12) blog(`力${fmt(S.stats.str)}の剣圧が敵の防御姿勢を軋ませる。`,'stat');
   dealPlayerHits(d, {power:1, hits:1}, 0, '通常攻撃');
@@ -1899,7 +2016,8 @@ function useSkillById(id, d){
   if(!sk || !hasSkill(id) || sk.type !== 'active' || !usableSkillIds('active').includes(id)) return false;
   if(!skillUsable(sk)){
     const wait=b.cooldowns&&b.cooldowns[sk.id]||0;
-    blog(wait>0?`${sk.name}は再使用まであと${wait}ターン。別の剣技で攻め筋を組み立てる必要がある。`:'気力・生命・専用ゲージのいずれかが足りず、技の型を完成できない。','system');
+    const equipIssue=skillEquipmentIssue(sk);
+    blog(equipIssue|| (wait>0?`${sk.name}は再使用まであと${wait}ターン。別の剣技で攻め筋を組み立てる必要がある。`:'気力・生命・専用ゲージのいずれかが足りず、技の型を完成できない。'),'system');
     return false;
   }
 
@@ -2472,6 +2590,7 @@ const G = {
     S = defaultState();
     S.name = name;
     S.gender = gender;
+    grantStarterGear('kenshi');
     S.screen = 'intro';
     S.storyStep = 0;
     save();
@@ -2655,6 +2774,14 @@ const G = {
     if(ADVANCED_CLASSES.includes(id) && !S.classPath && !confirm(`${CLASSES[id].name}の系統を選びます。以後、別系統の上級職・最終職には進めません。よろしいですか？`)) return;
     if(ADVANCED_CLASSES.includes(id) && !S.classPath) S.classPath = id;
     S.classId = id;
+    for(const hand of ['rightHand','leftHand']){
+      if(S.equip[hand] && !canEquipTo(S.equip[hand],hand)){
+        S.inventory.push(S.equip[hand]);
+        S.equip[hand]=null;
+      }
+    }
+    const starterStyle=ADVANCED_CLASSES.includes(id)?id:FINAL_CLASS_FROM[id];
+    if(starterStyle) grantStarterGear(starterStyle);
     S.ui.inheritActive = S.ui.inheritActive.filter(skillId => SKILLS[skillId] && SKILLS[skillId].cls !== id).slice(0,2);
     S.ui.inheritPassive = S.ui.inheritPassive.filter(skillId => SKILLS[skillId] && SKILLS[skillId].cls !== id).slice(0,2);
     S.ui.skillClass = id;
@@ -2666,18 +2793,22 @@ const G = {
     save();
     render();
   },
-  equipItem(id){
+  equipItem(id,target=null){
     const idx = S.inventory.findIndex(i => i.id === id);
     if(idx < 0) return;
     const item = S.inventory[idx];
-    const slot = item.slot;
-    const old = S.equip[slot];
+    let targets=equipTargets(item);
+    if(!targets.length){ S.message=`${equipmentTypeName(item)}は${CLASSES[S.classId].name}では装備できません。`; render(); return; }
+    if(!target){ target=targets.find(x=>!S.equip[x])||targets[0]; }
+    if(!canEquipTo(item,target)) return;
+    const old = S.equip[target];
 
     S.inventory.splice(idx, 1);
-    S.equip[slot] = item;
+    S.equip[target] = item;
     if(old) S.inventory.push(old);
+    if(item.weaponType==='greatsword' && S.equip.leftHand){ S.inventory.push(S.equip.leftHand); S.equip.leftHand=null; }
 
-    S.message = `${item.name}を装備した！`;
+    S.message = `${item.name}を${SLOT_NAMES[target]}に装備した！`;
     save();
     render();
   },
@@ -3092,20 +3223,20 @@ function skillsView(){
   </div>`;
 }
 function equipView(){
-  const slots = [
-    ['weapon','武器'],
-    ['armor','防具'],
-    ['accessory','装飾']
-  ];
+  const slots = EQUIP_SLOTS.map(id=>[id,SLOT_NAMES[id]]);
+  const rule=CLASS_EQUIP_RULES[S.classId]||CLASS_EQUIP_RULES.kenshi;
+  const typeList=xs=>(xs||[]).map(x=>WEAPON_TYPES[x].name).join('・')||'装備不可';
 
   return `
   <div class="panel">
     <h2>装備とインベントリ</h2>
     <p class="small">所持ゴールド：<b class="gold">${fmt(S.gold)}</b> / インベントリ ${S.inventory.length}/${inventoryLimit()}</p>
+    <div class="card"><b>${CLASSES[S.classId].name}の手装備</b><div class="small">右手：${typeList(rule.right)}／左手：${typeList(rule.left)}</div><div class="small">左右の能力はどちらも100%反映。二刀・大剣・魔剣・盾などは、武器自体の基礎性能と固有能力で均衡します。</div></div>
 
     <div class="grid wide">
       ${slots.map(([slot,label]) => {
         const item = S.equip[slot];
+        const occupied=slot==='leftHand'&&S.equip.rightHand&&S.equip.rightHand.weaponType==='greatsword';
         return `
         <div class="card">
           <b>${label}</b>
@@ -3114,7 +3245,7 @@ function equipView(){
             <div class="small">${itemStatsText(item)}</div>
             <div class="small">強化成功率100%／装備能力+${(item.enhance||0)*6}%／次の費用 ${fmt(enhanceCost(item))}G／上限+20</div>
             <div class="flex"><button class="primary" onclick="G.enhanceItem('${slot}')" ${(item.enhance||0)>=20?'disabled':''}>ゴールド強化</button><button onclick="G.unequipItem('${slot}')">外す</button></div>
-          ` : '<div class="small">未装備</div>'}
+          ` : `<div class="small">${occupied?'大剣による両手占有':'未装備'}</div>`}
         </div>`;
       }).join('')}
     </div>
@@ -3125,11 +3256,11 @@ function equipView(){
         ${S.inventory.map(item => `
           <div class="card">
             <div class="itemName ${RARITIES[item.rarity].cls}">${item.name} +${item.enhance||0}</div>
-            <div class="small">${RARITIES[item.rarity].name} / Lv${fmt(item.level)} / ${item.slot === 'weapon' ? '武器' : item.slot === 'armor' ? '防具' : '装飾'}</div>
+            <div class="small">${RARITIES[item.rarity].name} / Lv${fmt(item.level)} / ${equipmentTypeName(item)}${item.element?`・${item.element}属性`:''}</div>
             <div class="small">${itemStatsText(item)}</div>
-            ${S.equip[item.slot]?`<div class="small muted">装備中との比較：${itemComparisonText(item,S.equip[item.slot])}</div>`:'<div class="small good">現在この部位は未装備</div>'}
+            ${equipTargets(item).length?`<div class="small good">装備可能：${equipTargets(item).map(x=>SLOT_NAMES[x]).join('・')}</div>`:`<div class="small bad">${CLASSES[S.classId].name}では装備不可</div>`}
             <div class="flex" style="margin-top:6px">
-              <button onclick="G.equipItem('${item.id}')">装備</button>
+              ${equipTargets(item).map(target=>`<button onclick="G.equipItem('${item.id}','${target}')">${SLOT_NAMES[target]}に装備</button>`).join('')}
               <button onclick="G.toggleItemLock('${item.id}')">${item.locked?'保護解除':'保護'}</button>
               <button onclick="G.sellItem('${item.id}')" ${item.locked?'disabled':''}>売却 ${fmt(item.sell)}G</button>
             </div>
@@ -3378,7 +3509,7 @@ function battleView(){
               ${skillCooldownTurns(sk)?` / 再使用${(b.cooldowns&&b.cooldowns[sk.id]||0)>0?`あと${b.cooldowns[sk.id]}T`:`${skillCooldownTurns(sk)}T`}`:''}
               ${sk.fx && sk.fx.stackConsume && sk.fx.stackConsume.required ? ` / ${RESOURCE_NAMES[sk.fx.stackConsume.type]}必須` : ''}
               ${ultimateGaugeCost(sk)?` / 極意${ultimateGaugeCost(sk)}${(b.ultimateGauge||0)<ultimateGaugeCost(sk)?`（あと${ultimateGaugeCost(sk)-(b.ultimateGauge||0)}）`:''}`:''}
-            </span><br><span class="small">熟練Lv${skillMastery(sk.id).level}・使用${fmt(skillMastery(sk.id).uses)}回</span><br><span class="small">${skillFlavor(sk).slice(0,34)}…</span>
+            </span><br>${skillEquipmentIssue(sk)?`<span class="small bad">${skillEquipmentIssue(sk)}</span><br>`:''}<span class="small">熟練Lv${skillMastery(sk.id).level}・使用${fmt(skillMastery(sk.id).uses)}回</span><br><span class="small">${skillFlavor(sk).slice(0,34)}…</span>
           </button>
         `).join('')}
       </div>
