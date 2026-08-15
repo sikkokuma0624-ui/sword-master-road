@@ -798,11 +798,11 @@ const MENTOR_TECHNIQUES = {
 for(const tech of Object.values(MENTOR_TECHNIQUES)) SKILLS[tech.id]=tech;
 
 const AREAS = [
-  {id:'grass', name:'始まりの草原', recommendedLv:1, levelRate:.90, levelBonus:0, statMult:.92, rewardMult:1.00, dropRate:.35, enemies:['見習いゴブリン','暴れウサギ','旅の剣士','案山子剣客','風斬り狼']},
-  {id:'forest', name:'霧の森', recommendedLv:5, levelRate:.94, levelBonus:2, statMult:.96, rewardMult:1.15, dropRate:.40, enemies:['森狼','迷い亡霊','妖刀使い','キノコ剣士','霧の暗殺者']},
-  {id:'grave', name:'古剣の墓所', recommendedLv:10, levelRate:.98, levelBonus:4, statMult:1.00, rewardMult:1.35, dropRate:.45, enemies:['錆びた鎧剣士','呪われた大剣','墓守の居合','剣憑き','折れた聖剣']},
-  {id:'mine', name:'呪われた坑道', recommendedLv:18, levelRate:1.02, levelBonus:7, statMult:1.04, rewardMult:1.60, dropRate:.50, enemies:['坑道喰らい','呪血の囚人','鉄鎖の亡者','闇鍛冶の影','地底剣鬼']},
-  {id:'tower', name:'天剣の頂', recommendedLv:28, levelRate:1.06, levelBonus:10, statMult:1.08, rewardMult:1.90, dropRate:.55, enemies:['剣聖の影','天剣騎士','龍剣士','無名の達人','風の剣精']},
+  {id:'grass', name:'始まりの草原', recommendedLv:1, levelRate:.90, levelBonus:0, statMult:.92, rewardMult:1.00, dropRate:.20, enemies:['見習いゴブリン','暴れウサギ','旅の剣士','案山子剣客','風斬り狼']},
+  {id:'forest', name:'霧の森', recommendedLv:5, levelRate:.94, levelBonus:2, statMult:.96, rewardMult:1.15, dropRate:.23, enemies:['森狼','迷い亡霊','妖刀使い','キノコ剣士','霧の暗殺者']},
+  {id:'grave', name:'古剣の墓所', recommendedLv:10, levelRate:.98, levelBonus:4, statMult:1.00, rewardMult:1.35, dropRate:.26, enemies:['錆びた鎧剣士','呪われた大剣','墓守の居合','剣憑き','折れた聖剣']},
+  {id:'mine', name:'呪われた坑道', recommendedLv:18, levelRate:1.02, levelBonus:7, statMult:1.04, rewardMult:1.60, dropRate:.30, enemies:['坑道喰らい','呪血の囚人','鉄鎖の亡者','闇鍛冶の影','地底剣鬼']},
+  {id:'tower', name:'天剣の頂', recommendedLv:28, levelRate:1.06, levelBonus:10, statMult:1.08, rewardMult:1.90, dropRate:.34, enemies:['剣聖の影','天剣騎士','龍剣士','無名の達人','風の剣精']},
   {
     id:'memory',
     name:'剣の記憶',
@@ -811,7 +811,7 @@ const AREAS = [
     levelBonus:14,
     statMult:1.12,
     rewardMult:2.30,
-    dropRate:.65,
+    dropRate:.32,
     enemies:['過去の剣士','剣の残響','始まりの剣','終焉の剣','達人の幻影']
   }
 ];
@@ -824,6 +824,23 @@ const AREA_BOSSES = {
   tower:{name:'天剣宗師・白蓮',title:'天剣の主',power:1.58,rewardGold:16000,rewardSp:10},
   memory:{name:'己が剣影',title:'最後の剣',power:1.72,rewardGold:30000,rewardSp:15}
 };
+const ENEMY_RANKS = [
+  {id:'normal',name:'',rate:55,hp:1,atk:1,def:1,reward:1,drop:0},
+  {id:'veteran',name:'【手練れ】',rate:30,hp:1.7,atk:1.05,def:1.08,reward:1.35,drop:.05},
+  {id:'master',name:'【達人】',rate:12,hp:2.5,atk:1.10,def:1.15,reward:1.8,drop:.10},
+  {id:'swordlord',name:'【剣豪】',rate:3,hp:4.0,atk:1.18,def:1.25,reward:2.8,drop:.18}
+];
+function rollEnemyRank(){
+  const r=Math.random()*100;let sum=0;
+  for(const rank of ENEMY_RANKS){sum+=rank.rate;if(r<sum)return rank;}
+  return ENEMY_RANKS[0];
+}
+function endgameEnemyGrowth(){
+  const progress=Math.max(0,S.level-35);
+  const curve=1-Math.exp(-progress/35);
+  const infinitePressure=(1+Math.max(0,S.level-100)*.004)*(1+eternalBonusPct()/100);
+  return {hp:(1+6.5*curve)*infinitePressure,bossHp:(1+2.5*curve)*infinitePressure,atk:1+.12*curve};
+}
 const SWORD_RANKS = ['見習い','剣士','剣客','剣豪','師範','宗師','剣極'];
 const MASTERY_THRESHOLDS = [0,10,30,75,150];
 const ENHANCE_RATE = .06;
@@ -865,12 +882,13 @@ const TUTORIAL = [
   {h:'スキル継承', p:'他職スキルはアクティブ2個・パッシブ2個まで継承候補にでき、戦闘ビルドへ装備して使用します。他職の奥義は継承できません。'},
   {h:'戦闘ビルド', p:'戦闘へ持ち込めるのはアクティブ4、パッシブ4、奥義1。タグを3個揃えるとシナジーが発動します。'},
   {h:'極意ゲージ', p:'戦闘開始時は0。通常攻撃・通常スキル・防御・被ダメージ・会心・回避で蓄積し、奥義は100、秘伝技は200消費します。'},
-  {h:'剣技の再使用', p:'強力な通常スキルは使用後1～3ターン再使用できません。別のスキルで連携し、気力が減ったら通常攻撃で14回復します。防御の気力回復は8です。'},
+  {h:'剣技の再使用', p:'強力な通常スキルは使用後1～3ターン再使用できません。別のスキルで連携し、気力が減ったら通常攻撃で14回復します。Lv50以降は最大気力の成長に合わせて技の消費気力も増え、通常攻撃の役割が失われません。'},
   {h:'ビルドプリセット', p:'スキル画面で現在の戦闘ビルドを3枠まで保存し、同じ職業ならボタン1つで切り替えられます。'},
   {h:'熟練度', p:'スキル使用10・30・75・150回で熟練Lvが上がり、威力上昇と気力軽減を得ます。'},
+  {h:'無限成長', p:'Lv100ごとに無窮剣境が1段階上がり、全戦闘能力+3%。熟練Lv5以降も150回ごとに無限上昇し、より高Lvの装備も落ち続けます。レベル・剣境・熟練・無限剣塔に最終上限はありません。'},
   {h:'段位と主', p:'各エリアで3勝すると主へ挑戦可能。主を倒すと次エリアと段位が解放されます。'},
   {h:'敵の予兆', p:'技・集中・精神力が高いほど、敵の次の行動を詳しく見抜けます。'},
-  {h:'敵の成長', p:'敵もあなたのレベルに応じて成長しますが、後半ほど緩やかな追加補正になります。装備・スキル・熟練度・師弟補正を整えれば、同じ相手との差を広げられます。'},
+  {h:'敵の成長', p:'敵もレベルと剣境に応じて成長し、通常・手練れ・達人・剣豪の4段階が出現します。HP中心の補正なので一撃死を増やさず、装備・スキル・熟練度・師弟補正で勝率と討伐速度に差を付けられます。'},
   {h:'師弟', p:'師匠1人と弟子10人まで。師匠との親密度100で最終試練が解放され、勝利すると専用秘伝技を継承できます。秘伝枠は1個です。'},
   {h:'装備', p:'敵が装備を落とします。インベントリから装着し、不要なら売ってゴールドに。'},
   {h:'PVP', p:'ランキングはサーバー想定のモックAPIで動きます。実サーバーに移す場合は MockServer を fetch に置き換えます。'}
@@ -887,7 +905,7 @@ const SERVER_DESIGN = [
 
 function defaultState(){
   return {
-    version:10,
+    version:11,
     screen:'title',
     name:'',
     gender:'その他',
@@ -1130,7 +1148,7 @@ function enemyIntentText(b){
 }
 function expNeeded(lv){
   const l = Math.max(1, Math.floor(lv));
-  const v = 85 + l*55 + l*l*9;
+  const v = l<=100 ? 85 + l*55 + l*l*9 : 95585+(l-100)*1800;
   return isFinite(v) ? Math.floor(v) : Number.MAX_VALUE;
 }
 function expPercent(){
@@ -1158,11 +1176,15 @@ function skillMastery(id){
   const m=S.skillMastery[id] || {uses:0,level:1};
   let level=1;
   for(let i=1;i<MASTERY_THRESHOLDS.length;i++) if(m.uses>=MASTERY_THRESHOLDS[i]) level=i+1;
-  return {uses:m.uses||0,level:Math.min(5,level)};
+  if((m.uses||0)>=150) level=5+Math.floor(((m.uses||0)-150)/150);
+  return {uses:m.uses||0,level};
 }
 function masteryNextText(id){
   const m=skillMastery(id);
-  if(m.level>=5) return '熟練MAX';
+  if(m.level>=5){
+    const next=150+(m.level-4)*150;
+    return `次まで${fmt(next-m.uses)}回（無限熟練）`;
+  }
   return `次まで${fmt(MASTERY_THRESHOLDS[m.level]-m.uses)}回`;
 }
 function recordSkillUse(id){
@@ -1186,7 +1208,10 @@ function awardBattleMastery(){
 function skillKiCost(sk){
   const base=sk.ki||0, lv=skillMastery(sk.id).level;
   const surcharge=!ultimateGaugeCost(sk) ? (sk.tier>=4?8:sk.tier>=3?4:0) : 0;
-  return Math.max(0,base+surcharge-Math.max(0,lv-2));
+  if(base+surcharge<=0) return 0;
+  const levelScale=Math.max(1,S.level/50);
+  const masteryDiscount=Math.min(.30,Math.max(0,lv-2)*.02);
+  return Math.max(1,Math.floor((base+surcharge)*levelScale*(1-masteryDiscount)));
 }
 function skillCooldownTurns(sk){
   if(!sk||sk.type!=='active'||ultimateGaugeCost(sk)) return 0;
@@ -1462,17 +1487,21 @@ function getEquipBonuses(){
   }
   return b;
 }
+function eternalStage(){ return Math.max(0,Math.floor(S.level/100)); }
+function eternalBonusPct(){ return eternalStage()*3; }
+function eternalTitle(){ return eternalStage()>0?`無窮剣境・第${fmt(eternalStage())}境`:'剣境修練中'; }
 function getDerived(){
   const cls = CLASSES[S.classId] || CLASSES.kenshi;
   const p = getPassiveBonuses();
   const eq = getEquipBonuses();
 
   const bond=1+bondBonusPct()/100;
-  const maxHP = Math.floor((Math.floor((60 + S.level*12 + S.stats.vit*14) * cls.hp * (1 + p.hpPct/100)) + eq.hp)*bond);
+  const eternal=1+eternalBonusPct()/100;
+  const maxHP = Math.floor((Math.floor((60 + S.level*12 + S.stats.vit*14) * cls.hp * (1 + p.hpPct/100)) + eq.hp)*bond*eternal);
   const maxKI = Math.floor(30 + S.stats.ki*4 + S.level*2 + p.kiMax + eq.ki);
-  const attack = Math.floor((S.stats.str*2 + S.stats.tec*0.7 + eq.atk) * cls.atk * (1 + p.atkPct/100)*bond);
-  const defense = Math.floor((S.stats.def*1.6 + S.stats.vit*0.6 + eq.def) * cls.def * (1 + p.defPct/100)*bond);
-  const speed = Math.floor((S.stats.agi*2 + S.stats.foc*0.4 + eq.spd + S.level*0.2) * cls.spd * (1 + p.spdPct/100)*bond);
+  const attack = Math.floor((S.stats.str*2 + S.stats.tec*0.7 + eq.atk) * cls.atk * (1 + p.atkPct/100)*bond*eternal);
+  const defense = Math.floor((S.stats.def*1.6 + S.stats.vit*0.6 + eq.def) * cls.def * (1 + p.defPct/100)*bond*eternal);
+  const speed = Math.floor((S.stats.agi*2 + S.stats.foc*0.4 + eq.spd + S.level*0.2) * cls.spd * (1 + p.spdPct/100)*bond*eternal);
   const crit = Math.floor(5 + S.stats.luk*0.25 + S.stats.tec*0.1 + eq.crit + p.crit);
   const dodge = Math.min(55, Math.floor(S.stats.agi*0.18 + S.stats.luk*0.08 + eq.dodge + p.dodge));
   const skillPower = (1 + S.stats.foc*0.008 + (p.skillPct + eq.skillPct)/100) * cls.skill;
@@ -1510,11 +1539,11 @@ const RARITIES = {
   legendary:{name:'伝説', mult:3.2, color:'#ffb300', cls:'rarity-legendary'}
 };
 function rollRarity(luk, boss){
-  const r = Math.random()*100 - (luk*0.15) - (boss ? 20 : 0);
-  if(r < 2) return 'legendary';
-  if(r < 8) return 'epic';
-  if(r < 20) return 'rare';
-  if(r < 45) return 'fine';
+  const r = Math.random()*100 - Math.min(2,luk*0.02) - (boss ? 15 : 0);
+  if(r < .5) return 'legendary';
+  if(r < 4) return 'epic';
+  if(r < 15) return 'rare';
+  if(r < 40) return 'fine';
   return 'common';
 }
 function makeItemName(slot, rarity){
@@ -1606,6 +1635,8 @@ function makeEnemy(areaId){
   const lvl = areaEnemyLevel(area,false);
   const statMult=area.statMult||1;
   const rewardMult=area.rewardMult||1;
+  const rank=rollEnemyRank();
+  const growth=endgameEnemyGrowth();
   let name = choice(area.enemies);
   let boss = false;
 
@@ -1613,17 +1644,18 @@ function makeEnemy(areaId){
     name = '【主】' + name;
     boss = true;
   }
+  name=rank.name+name;
 
-  const maxHP = Math.floor((45 + lvl*18) * statMult * (boss ? 2.0 : 1));
-  const atk = Math.floor((8 + lvl*4.2) * statMult * (boss ? 1.28 : 1));
-  const def = Math.floor((4 + lvl*2.6) * statMult * (boss ? 1.15 : 1));
+  const maxHP = Math.floor((45 + lvl*18) * statMult * growth.hp * rank.hp * (boss ? 2.0 : 1));
+  const atk = Math.floor((8 + lvl*4.2) * statMult * growth.atk * rank.atk * (boss ? 1.28 : 1));
+  const def = Math.floor((4 + lvl*2.6) * statMult * rank.def * (boss ? 1.15 : 1));
   const speed = Math.floor(8 + lvl*2.1 * (boss ? 1.1 : 1));
-  const exp = Math.floor((25 + lvl*42) * rewardMult * (boss ? 3.5 : 1));
-  const gold = Math.floor((20 + lvl*30) * rewardMult * (boss ? 5 : 1));
+  const exp = Math.floor((25 + lvl*42) * rewardMult * rank.reward * (boss ? 3.5 : 1));
+  const gold = Math.floor((20 + lvl*30) * rewardMult * rank.reward * (boss ? 5 : 1));
 
   return {
     name, level:lvl, maxHP, hp:maxHP, atk, def, speed, exp, gold,
-    isPvp:false, boss, fixedBoss:false, areaId:area.id, dropRate:area.dropRate,
+    isPvp:false, boss, fixedBoss:false, enemyRank:rank.id, areaId:area.id, dropRate:Math.min(.85,area.dropRate+rank.drop),
     rating:0, opponentId:null, skills:makeEnemySkills(name,boss)
   };
 }
@@ -1633,12 +1665,13 @@ function makeAreaBoss(areaId){
   const lvl=Math.max(5,areaEnemyLevel(area,true));
   const power=spec.power;
   const statMult=area.statMult||1;
+  const growth=endgameEnemyGrowth();
   const attackPower=(1+(power-1)*.50)*.90;
   const bossEndurance=2.35+power*.25;
-  const maxHP=Math.floor((100+lvl*30)*power*statMult*bossEndurance);
+  const maxHP=Math.floor((100+lvl*30)*power*statMult*bossEndurance*growth.bossHp);
   return {
     name:`【${spec.title}】${spec.name}`,level:lvl,maxHP,hp:maxHP,
-    atk:Math.floor((12+lvl*5)*attackPower*statMult),def:Math.floor((8+lvl*3.2)*(1+(power-1)*.55)*statMult),speed:Math.floor((10+lvl*2.2)*Math.min(1.25,1+(power-1)*.35)),
+    atk:Math.floor((12+lvl*5)*attackPower*statMult*growth.atk),def:Math.floor((8+lvl*3.2)*(1+(power-1)*.55)*statMult),speed:Math.floor((10+lvl*2.2)*Math.min(1.25,1+(power-1)*.35)),
     exp:Math.floor((100+lvl*80)*power),gold:spec.rewardGold,isPvp:false,boss:true,fixedBoss:true,
     areaId:area.id,dropRate:1,rating:0,opponentId:null,skills:makeEnemySkills(spec.name,true)
   };
@@ -1652,7 +1685,7 @@ function makeTowerEnemy(){
   const boss=floor%5===0;
   const name=boss?`【第${floor}階の剣主】無窮剣影`:`第${floor}階・${mod.name}の剣士`;
   const maxHP=Math.floor((90+level*22)*scale*mod.hp*(boss?1.7:1));
-  return {name,level,maxHP,hp:maxHP,atk:Math.floor((10+level*4)*scale*mod.atk*(boss?1.18:1)),def:Math.floor((6+level*2.6)*scale*mod.def),speed:Math.floor((9+level*2)*scale*(mod.spd||1)),exp:Math.floor((45+level*45)*scale),gold:Math.floor((60+level*38)*scale),isPvp:false,boss,fixedBoss:false,tower:true,towerFloor:floor,modifier:mod.name,areaId:null,dropRate:Math.min(.8,.35+floor*.01),rating:0,opponentId:null,skills:makeEnemySkills(name,boss)};
+  return {name,level,maxHP,hp:maxHP,atk:Math.floor((10+level*4)*scale*mod.atk*(boss?1.18:1)),def:Math.floor((6+level*2.6)*scale*mod.def),speed:Math.floor((9+level*2)*scale*(mod.spd||1)),exp:Math.floor((45+level*45)*scale),gold:Math.floor((60+level*38)*scale),isPvp:false,boss,fixedBoss:false,tower:true,towerFloor:floor,modifier:mod.name,areaId:null,dropRate:Math.min(.55,.25+floor*.004),rating:0,opponentId:null,skills:makeEnemySkills(name,boss)};
 }
 function makePvpEnemy(op){
   const lvl = Math.max(1, op.level || Math.floor(S.level * (0.9 + Math.random()*0.25)));
@@ -1818,6 +1851,9 @@ function dealPlayerHits(d, sk, stackBonus, name){
     const crit = Math.random()*100 < critChance;
 
     let atk = d.attack * (1 + b.buffs.atk/100);
+    // 盾系統は守りを剣威へ変換する。耐久型でも戦闘が長引き過ぎないための職業特性。
+    if(S.classId === 'seiken') atk += d.defense * 0.25;
+    if(S.classId === 'seigo') atk += d.defense * 0.40;
     if(b.isPvp) atk *= 1 + d.pvpBonus/100;
 
     const enemyDef = b.enemy.def * (1 - Math.max(0, b.enemyDebuffs.def)/100);
@@ -2250,6 +2286,7 @@ function updateRating(oppRating, win){
   S.rating = Math.max(0, S.rating + delta);
 }
 function processLevelUps(){
+  const oldEternal=eternalStage();
   let ups = 0;
   while(S.exp >= expNeeded(S.level) && ups < 100000){
     S.exp -= expNeeded(S.level);
@@ -2261,6 +2298,10 @@ function processLevelUps(){
   }
   if(ups > 5) blog(`さらに${fmt(ups - 5)}回のレベルアップ！`);
   if(ups >= 100000) blog('レベルアップ処理が多すぎたため一区切りつけた。');
+  if(eternalStage()>oldEternal){
+    blog(`剣境突破――「${eternalTitle()}」へ到達！ 全戦闘能力が恒久的にさらに3%上昇した。`,'result');
+    blog('レベル・剣境・装備更新・無限熟練・無限剣塔には上限がない。剣の道はここからも続く。','stance');
+  }
 }
 function victory(){
   const b = S.battle;
@@ -2881,7 +2922,7 @@ function adventureView(){
   return `
   <div class="panel">
     <h2>冒険</h2>
-    <div class="card"><b>段位：${swordRankName()}</b>　<span class="pill">総合戦闘力 ${fmt(getCombatPower())}</span><div class="small">第一目標：六つの主を制し「剣極」へ。到達後は無限剣塔の最高階層と総合戦闘力を伸ばす。</div></div>
+    <div class="card"><b>段位：${swordRankName()}</b>　<span class="pill">総合戦闘力 ${fmt(getCombatPower())}</span><span class="pill warn">${eternalTitle()}</span><div class="small">Lv100ごとに剣境突破・全能力+3%。レベル、装備更新、スキル熟練、無限剣塔を伸ばし続け、総合戦闘力ランキングの頂点を目指す。</div></div>
     <div class="bar exp"><div style="width:${expPercent()}%"></div></div>
     <div class="small">EXP ${fmt(S.exp)} / ${fmt(expNeeded(S.level))} / 残りポイント ${fmt(S.statPoints)} / SP ${fmt(S.sp)}</div>
     ${S.message ? `<p class="good">${esc(S.message)}</p>` : ''}
@@ -2902,7 +2943,7 @@ function adventureView(){
     </div>
     <div class="card" style="margin-top:12px;${S.clearedAreas.length<6?'opacity:.5':''}">
       <div class="flex"><b>無限剣塔</b><span class="pill warn">現在 第${fmt(S.tower.floor)}階</span><span class="pill">最高 ${fmt(S.tower.best)}階</span></div>
-      <div class="small">剣極到達後の無限修練。階層ごとに敵能力と特殊補正が上昇し、5階ごとに剣主が待つ。</div>
+      <div class="small">剣極到達後の無限修練。階層ごとに敵能力と特殊補正が上昇し、5階ごとに剣主が待つ。最高階・総合戦闘力はオンラインランキング用データへ反映される。</div>
       <div class="flex"><button class="primary" onclick="G.startTower()" ${S.clearedAreas.length>=6?'':'disabled'}>第${fmt(S.tower.floor)}階へ挑戦（ST8）</button><button onclick="G.resetTower()" ${S.clearedAreas.length>=6?'':'disabled'}>第1階から</button></div>
     </div>
   </div>`;
@@ -2929,7 +2970,7 @@ function statusView(){
 
     <div class="card" style="margin-top:10px">
       <b>現在の戦闘能力</b>
-      <div><span class="pill good">段位 ${swordRankName()}</span><span class="pill">総合戦闘力 ${fmt(getCombatPower())}</span><span class="pill">剣縁 +${bondBonusPct().toFixed(2)}%</span></div>
+      <div><span class="pill good">段位 ${swordRankName()}</span><span class="pill">総合戦闘力 ${fmt(getCombatPower())}</span><span class="pill warn">${eternalTitle()}・全能力+${fmt(eternalBonusPct())}%</span><span class="pill">剣縁 +${bondBonusPct().toFixed(2)}%</span></div>
       <div class="small">
         HP ${fmt(d.maxHP)} / 気力 ${fmt(d.maxKI)} / 攻撃 ${fmt(d.attack)} / 防御 ${fmt(d.defense)} /
         速さ ${fmt(d.speed)} / 会心 ${fmt(d.crit)}% / 回避 ${fmt(d.dodge)}% /
